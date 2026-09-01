@@ -3,65 +3,63 @@
   "name": "Cadastros Omie",
   "slug": "cadastros-omie",
   "appKind": "member-central",
-  "backend": {
-    "metadataUrl": "/core/metadata"
-  },
-  "layout": {
-    "shell": "default",
-    "sidebar": "core",
-    "topbar": "core",
-    "footer": "core"
-  },
-  "navigation": {
-    "mode": "auto"
-  },
+  "backend": { "metadataUrl": "/core/metadata" },
+  "layout": { "shell": "default", "sidebar": "core", "topbar": "core", "footer": "core" },
+  "navigation": { "mode": "auto" },
   "pages": [
     {
       "path": "/",
-      "label": "Início",
-      "title": "Boas-vindas ao Cadastros Omie",
+      "label": "Visão geral",
+      "title": "Cadastros Omie",
       "order": 10,
       "blocks": [
-        {
-          "type": "markdown",
-          "content": "Seu oon-app já está autenticado, publicado em Dev e pronto para receber o domínio da solução. Esta Home é declarativa e renderizada pelo OonCore."
-        },
-        {
-          "type": "section",
-          "title": "O que o OonCore já entrega",
-          "description": "A base técnica comum está pronta para você concentrar a implementação nas regras do negócio.",
-          "blocks": [
-            {
-              "type": "markdown",
-              "content": "• Autenticação integrada, sessão e contexto do tenant.\n• Shell responsivo, navegação, roteamento e estados de carregamento e erro.\n• RBAC, catálogo de perfis e gestão de Usuários e Acessos.\n• Metadata, CRUD, formulários, tabelas, filtros, dashboards e esteiras declarativas.\n• Contratos para documentos, integrações, auditoria, validação e observabilidade."
-            }
-          ]
-        },
-        {
-          "type": "section",
-          "title": "O que a Plataforma Oon entrega",
-          "description": "O ciclo operacional do app permanece governado pela plataforma.",
-          "blocks": [
-            {
-              "type": "markdown",
-              "content": "• Repositório GitHub privado e código-fonte versionado.\n• Publicação automática em Dev a partir da branch main.\n• Ambiente isolado com aplicação, banco de dados, URL pública, certificado e secrets.\n• Acompanhamento no Workspace e no Meus Apps, com promoção controlada entre ambientes.\n• Documentação técnica e funcional centralizada no Oon Docs."
-            }
-          ]
-        },
-        {
-          "type": "section",
-          "title": "Próximos passos",
-          "blocks": [
-            {
-              "type": "markdown",
-              "content": "1. Rode npm install e npm run ooncore:docs para sincronizar a documentação local.\n2. Leia .ooncore/AGENTS.md e o contexto da versão instalada.\n3. Modele o domínio em backend/src/models e declare as telas em frontend/central.ui.json.\n4. Acrescente permissões de negócio e distribua-as entre os perfis no central.app.json.\n5. Rode npm run check, faça commit na main e acompanhe a republicação em Dev pelo Workspace."
-            }
-          ]
-        }
+        { "type": "markdown", "content": "Projeções multibase de clientes/fornecedores, categorias, departamentos e projetos. Cada registro preserva sua conexão de origem." },
+        { "type": "section", "title": "Incremento 1 — consulta segura", "description": "A escrita está reservada ao worker de integração. Mutações Omie serão habilitadas somente após a capability de Configurações e a idempotência estarem homologadas.", "blocks": [
+          { "type": "markdown", "content": "• O Omie é a fonte de verdade.\n• O adapter pertence a este side-car; a integração nativa do Core está desabilitada.\n• Este app não persiste credenciais.\n• DTOs Omie são traduzidos no adapter.\n• Conflitos nunca são sobrescritos silenciosamente." }
+        ] }
       ]
     }
   ],
-  "collections": [],
+  "collections": [
+    {
+      "model": "PartnerProjection",
+      "mode": "dynamic",
+      "path": "/clientes-fornecedores",
+      "label": "Clientes e fornecedores",
+      "section": "Cadastros",
+      "list": {
+        "filters": [
+          { "field": "omieConnectionId", "label": "Conexão", "type": "text" },
+          { "field": "syncState", "label": "Sincronização", "type": "select", "options": [
+            { "label": "Todas", "value": "" }, { "label": "Sincronizado", "value": "Sincronizado" }, { "label": "Conflito", "value": "Conflito" }, { "label": "Erro", "value": "Erro" }
+          ] },
+          { "field": "active", "label": "Ativo", "type": "boolean" }
+        ],
+        "columns": ["omieConnectionId", "legalName", "tradeName", "documentMasked", "isCustomer", "isSupplier", "active", "syncState", "syncedAt"],
+        "rowActions": [{ "type": "openDetailModal", "label": "Consultar", "icon": "edit", "initialTab": "identificacao" }]
+      },
+      "detailModal": {
+        "enabled": true,
+        "titleField": "legalName",
+        "size": "lg",
+        "defaultTab": "identificacao",
+        "tabs": [
+          { "id": "identificacao", "label": "Identificação", "type": "form", "groups": [
+            { "label": "Origem", "fields": ["omieConnectionId", "externalId", "integrationCode"] },
+            { "label": "Cadastro", "fields": ["legalName", "tradeName", "documentMasked", "isCustomer", "isSupplier", "active"] },
+            { "label": "Contato", "fields": ["email", "phone"] }
+          ] },
+          { "id": "sincronizacao", "label": "Sincronização", "type": "form", "groups": [
+            { "label": "Estado", "fields": ["syncState", "syncedAt", "externalUpdatedAt", "lastErrorCode"] }
+          ] }
+        ]
+      }
+    },
+    { "model": "CategoryProjection", "mode": "dynamic", "path": "/categorias", "label": "Categorias", "section": "Cadastros", "list": { "filters": [{ "field": "omieConnectionId", "label": "Conexão", "type": "text" }, { "field": "active", "label": "Ativa", "type": "boolean" }], "columns": ["omieConnectionId", "externalId", "description", "nature", "categoryType", "active", "syncState", "syncedAt"] } },
+    { "model": "DepartmentProjection", "mode": "dynamic", "path": "/departamentos", "label": "Departamentos", "section": "Cadastros", "list": { "filters": [{ "field": "omieConnectionId", "label": "Conexão", "type": "text" }, { "field": "active", "label": "Ativo", "type": "boolean" }], "columns": ["omieConnectionId", "externalId", "description", "active", "syncState", "syncedAt"] } },
+    { "model": "ProjectProjection", "mode": "dynamic", "path": "/projetos", "label": "Projetos", "section": "Cadastros", "list": { "filters": [{ "field": "omieConnectionId", "label": "Conexão", "type": "text" }, { "field": "active", "label": "Ativo", "type": "boolean" }], "columns": ["omieConnectionId", "externalId", "integrationCode", "name", "active", "syncState", "syncedAt"] } },
+    { "model": "AttachmentReference", "mode": "minimal", "path": "/anexos", "label": "Anexos (fundação)", "section": "Cadastros", "list": { "filters": [{ "field": "omieConnectionId", "label": "Conexão", "type": "text" }, { "field": "sourceTable", "label": "Origem", "type": "text" }], "columns": ["omieConnectionId", "sourceTable", "sourceExternalId", "fileName", "mediaType", "syncState", "syncedAt"] } }
+  ],
   "pipelines": [],
   "documents": []
 }
