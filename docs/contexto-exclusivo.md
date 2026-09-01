@@ -23,7 +23,7 @@ adrs:
 targetRelease: onda-0-fundacao
 ```
 
-Este documento define o bounded context de cadastros compartilhados. A UI não chama a Omie diretamente, o domínio não importa DTO bruto e o módulo não armazena credenciais.
+Este documento define o bounded context de cadastros compartilhados. A UI não chama a Omie diretamente, o domínio não importa DTO bruto, o módulo não persiste credenciais e a capacidade nativa `core.integrations.omie` não é utilizada.
 
 ## 01. Objetivo e fronteira funcional
 
@@ -138,7 +138,7 @@ Rotas: `/`, `/clientes-fornecedores`, `/categorias`, `/departamentos`, `/projeto
 
 ## 18. Backend
 
-Casos de uso recebem conexão já autorizada pela capability de Configurações. Adapter traduz contratos oficiais. Jobs serializam escrita por conexão, aplicam idempotência, outbox e auditoria. Nenhuma rota recebe credencial.
+Casos de uso recebem conexão já autorizada pelo contrato de Configurações. O adapter próprio deste side-car traduz os contratos oficiais e usa material efêmero resolvido apenas no backend. Jobs serializam escrita por conexão, aplicam idempotência, outbox e auditoria. Nenhuma rota pública recebe credencial.
 
 ## 19. Sincronização e webhooks
 
@@ -146,7 +146,7 @@ Listagem incremental por data/hora quando suportada, com overlap; paginação e 
 
 ## 20. Erros e resiliência
 
-Taxonomia comum Oon. Retry de consulta é seguro; mutação pós-timeout reconcilia. Rate limit é compartilhado com os demais apps pela capability de conexão. DLQ guarda referência mascarada e permite reprocessar seletivamente.
+Taxonomia comum Oon. Retry de consulta é seguro; mutação pós-timeout reconcilia. Rate limit e circuit breaker são aplicados por conexão no adapter local e coordenados pelo contrato operacional de Configurações. DLQ guarda referência mascarada e permite reprocessar seletivamente.
 
 ## 21. Segurança e LGPD
 
@@ -166,4 +166,4 @@ Homologar duas bases do mesmo tenant e uma de tenant distinto, cobrindo registro
 
 ## Gate atual
 
-G0 documentado. G1 pode iniciar apenas para projeções declarativas e UI de consulta. Mutações Omie e sincronização real permanecem bloqueadas até a capability de Configurações, o adapter e os testes de isolamento estarem prontos.
+G0 documentado. G1 inicia com projeções declarativas, UI de consulta e contrato do adapter local. Mutações Omie e sincronização real permanecem bloqueadas até o contrato de Configurações, cofre, transporte do adapter e testes de isolamento estarem prontos.

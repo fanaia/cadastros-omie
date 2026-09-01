@@ -12,6 +12,6 @@ Bounded context de clientes/fornecedores, projetos, categorias, departamentos, a
 
 ## Estado
 
-O primeiro incremento implementa projeções e UI de consulta. Mutações e sincronização real dependem da capability de `configuracoes-omie`; este app não mantém credenciais próprias.
+O primeiro incremento implementa projeções, UI de consulta e o contrato inicial do adapter Omie próprio do side-car. Mutações e sincronização real dependem da resolução autorizada de `configuracoes-omie`; este app não persiste credenciais e não usa `core.integrations.omie`.
 
 Código: `cadastros-omie`. A branch `main` publica automaticamente em Dev pelo fluxo governado da Plataforma Oon.

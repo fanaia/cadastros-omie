@@ -6,11 +6,12 @@
 - Campos técnicos readonly e `omieConnectionId` obrigatório.
 - Coleções OonCore de consulta e filtros multibase.
 - RBAC e testes estáticos dos manifestos.
+- Catálogo de operações e adapter local com transporte/resolução injetáveis.
 
 ## Incremento 2 — Consumer contract e sincronização
 
-- Resolver conexão por capability de `configuracoes-omie`.
-- Adapter de listagem/consulta, paginação, checkpoint e reconciliação.
+- Resolver conexão pelo contrato versionado de `configuracoes-omie`.
+- Completar o adapter local de listagem/consulta, paginação, checkpoint e reconciliação.
 - Compound indexes/migration e tickets de falha.
 
 ## Incremento 3 — Mutações idempotentes
@@ -26,4 +27,4 @@
 
 ## Gates
 
-Nenhuma chamada real ocorre sem conexão autorizada, cofre e consumer contract. Cada incremento atualiza paridade, contratos, ADRs, testes e evidências.
+Nenhuma chamada real ocorre sem conexão autorizada, cofre e consumer contract. `core.integrations.omie` permanece desabilitado. Cada incremento atualiza paridade, contratos, ADRs, testes e evidências.
