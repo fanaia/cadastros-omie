@@ -1,0 +1,12 @@
+{
+  "SERVICE_NAME": "cadastros-omie",
+  "NAMESPACE": "cadastros-omie",
+  "IMAGE": "ghcr.io/cadastros-omie-backend",
+  "IMAGE_TAG": "latest",
+  "HOST": "cadastros-omie.example.com",
+  "CENTRAL_ATIVACAO_URL": "https://central-ativacao.example.com",
+  "APP_CODE": "cadastros-omie",
+  "REPLICAS": "1",
+  "HPA_MIN": "1",
+  "HPA_MAX": "3"
+}

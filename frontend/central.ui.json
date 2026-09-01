@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 2,
+  "name": "Cadastros Omie",
+  "slug": "cadastros-omie",
+  "appKind": "member-central",
+  "backend": {
+    "metadataUrl": "/core/metadata"
+  },
+  "layout": {
+    "shell": "default",
+    "sidebar": "core",
+    "topbar": "core",
+    "footer": "core"
+  },
+  "navigation": {
+    "mode": "auto"
+  },
+  "pages": [
+    {
+      "path": "/",
+      "label": "Início",
+      "title": "Boas-vindas ao Cadastros Omie",
+      "order": 10,
+      "blocks": [
+        {
+          "type": "markdown",
+          "content": "Seu oon-app já está autenticado, publicado em Dev e pronto para receber o domínio da solução. Esta Home é declarativa e renderizada pelo OonCore."
+        },
+        {
+          "type": "section",
+          "title": "O que o OonCore já entrega",
+          "description": "A base técnica comum está pronta para você concentrar a implementação nas regras do negócio.",
+          "blocks": [
+            {
+              "type": "markdown",
+              "content": "• Autenticação integrada, sessão e contexto do tenant.\n• Shell responsivo, navegação, roteamento e estados de carregamento e erro.\n• RBAC, catálogo de perfis e gestão de Usuários e Acessos.\n• Metadata, CRUD, formulários, tabelas, filtros, dashboards e esteiras declarativas.\n• Contratos para documentos, integrações, auditoria, validação e observabilidade."
+            }
+          ]
+        },
+        {
+          "type": "section",
+          "title": "O que a Plataforma Oon entrega",
+          "description": "O ciclo operacional do app permanece governado pela plataforma.",
+          "blocks": [
+            {
+              "type": "markdown",
+              "content": "• Repositório GitHub privado e código-fonte versionado.\n• Publicação automática em Dev a partir da branch main.\n• Ambiente isolado com aplicação, banco de dados, URL pública, certificado e secrets.\n• Acompanhamento no Workspace e no Meus Apps, com promoção controlada entre ambientes.\n• Documentação técnica e funcional centralizada no Oon Docs."
+            }
+          ]
+        },
+        {
+          "type": "section",
+          "title": "Próximos passos",
+          "blocks": [
+            {
+              "type": "markdown",
+              "content": "1. Rode npm install e npm run ooncore:docs para sincronizar a documentação local.\n2. Leia .ooncore/AGENTS.md e o contexto da versão instalada.\n3. Modele o domínio em backend/src/models e declare as telas em frontend/central.ui.json.\n4. Acrescente permissões de negócio e distribua-as entre os perfis no central.app.json.\n5. Rode npm run check, faça commit na main e acompanhe a republicação em Dev pelo Workspace."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "collections": [],
+  "pipelines": [],
+  "documents": []
+}
