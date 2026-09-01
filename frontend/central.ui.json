@@ -9,18 +9,10 @@
   "pages": [
     {
       "path": "/",
-      "label": "Visão operacional",
-      "title": "Operação dos cadastros Omie",
+      "label": "Inicialização",
+      "title": "Inicialização e teste de sincronização",
       "order": 10,
-      "blocks": [
-        { "type": "markdown", "content": "Localize cadastros na base correta, valide a origem e concentre o trabalho em pendências, conflitos e erros de sincronização.\n\n**Jornada recomendada:** escolher a base → localizar → qualificar → validar origem e sincronização → tratar exceções.\n\n[Abrir clientes e fornecedores](/clientes-fornecedores)" },
-        { "type": "section", "title": "Como priorizar o trabalho", "description": "A situação de sincronização define o próximo passo.", "blocks": [
-          { "type": "markdown", "content": "1. Selecione a conexão Omie autorizada.\n2. Filtre **Conflito**, **Erro** ou **Pendente**.\n3. Use **Analisar sincronização** para abrir a ocorrência no contexto correto.\n4. Confira o cadastro funcional antes dos ids técnicos e do hash." }
-        ] },
-        { "type": "section", "title": "Fonte de verdade e segurança", "description": "As projeções apoiam a operação sem substituir o ERP.", "blocks": [
-          { "type": "markdown", "content": "• O Omie permanece fonte de verdade.\n• Toda projeção preserva a conexão de origem.\n• O adapter pertence a este side-car e a integração nativa do Core está desabilitada.\n• Sincronizar, reprocessar e resolver conflito só serão exibidos após os comandos protegidos estarem homologados." }
-        ] }
-      ]
+      "component": "CadastrosInitializationPage"
     }
   ],
   "collections": [
