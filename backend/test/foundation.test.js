@@ -33,7 +33,8 @@ test("UI preserva origem nas cinco coleções", () => {
   const ui = readJson("frontend/central.ui.json");
   assert.deepEqual(ui.collections.map((item) => item.model), ["PartnerProjection", "CategoryProjection", "DepartmentProjection", "ProjectProjection", "AttachmentReference"]);
   for (const collection of ui.collections) {
-    assert.ok(collection.list.columns.includes("omieConnectionId"), `${collection.model} não exibe origem`);
+    const fields = collection.list.columns.map((column) => typeof column === "string" ? column : column.field);
+    assert.ok(fields.includes("omieConnectionId"), `${collection.model} não exibe origem`);
   }
 });
 

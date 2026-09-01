@@ -9,13 +9,16 @@
   "pages": [
     {
       "path": "/",
-      "label": "Visão geral",
-      "title": "Cadastros Omie",
+      "label": "Visão operacional",
+      "title": "Operação dos cadastros Omie",
       "order": 10,
       "blocks": [
-        { "type": "markdown", "content": "Projeções multibase de clientes/fornecedores, categorias, departamentos e projetos. Cada registro preserva sua conexão de origem." },
-        { "type": "section", "title": "Incremento 1 — consulta segura", "description": "A escrita está reservada ao worker de integração. Mutações Omie serão habilitadas somente após a capability de Configurações e a idempotência estarem homologadas.", "blocks": [
-          { "type": "markdown", "content": "• O Omie é a fonte de verdade.\n• O adapter pertence a este side-car; a integração nativa do Core está desabilitada.\n• Este app não persiste credenciais.\n• DTOs Omie são traduzidos no adapter.\n• Conflitos nunca são sobrescritos silenciosamente." }
+        { "type": "markdown", "content": "Localize cadastros na base correta, valide a origem e concentre o trabalho em pendências, conflitos e erros de sincronização.\n\n**Jornada recomendada:** escolher a base → localizar → qualificar → validar origem e sincronização → tratar exceções.\n\n[Abrir clientes e fornecedores](/clientes-fornecedores)" },
+        { "type": "section", "title": "Como priorizar o trabalho", "description": "A situação de sincronização define o próximo passo.", "blocks": [
+          { "type": "markdown", "content": "1. Selecione a conexão Omie autorizada.\n2. Filtre **Conflito**, **Erro** ou **Pendente**.\n3. Use **Analisar sincronização** para abrir a ocorrência no contexto correto.\n4. Confira o cadastro funcional antes dos ids técnicos e do hash." }
+        ] },
+        { "type": "section", "title": "Fonte de verdade e segurança", "description": "As projeções apoiam a operação sem substituir o ERP.", "blocks": [
+          { "type": "markdown", "content": "• O Omie permanece fonte de verdade.\n• Toda projeção preserva a conexão de origem.\n• O adapter pertence a este side-car e a integração nativa do Core está desabilitada.\n• Sincronizar, reprocessar e resolver conflito só serão exibidos após os comandos protegidos estarem homologados." }
         ] }
       ]
     }
@@ -26,39 +29,275 @@
       "mode": "dynamic",
       "path": "/clientes-fornecedores",
       "label": "Clientes e fornecedores",
-      "section": "Cadastros",
+      "section": "Operação",
       "list": {
         "filters": [
-          { "field": "omieConnectionId", "label": "Conexão", "type": "text" },
-          { "field": "syncState", "label": "Sincronização", "type": "select", "options": [
-            { "label": "Todas", "value": "" }, { "label": "Sincronizado", "value": "Sincronizado" }, { "label": "Conflito", "value": "Conflito" }, { "label": "Erro", "value": "Erro" }
+          { "field": "omieConnectionId", "label": "Base Omie", "type": "text" },
+          { "field": "syncState", "label": "Situação", "type": "select", "options": [
+            { "label": "Todas", "value": "" }, { "label": "Pendente", "value": "Pendente" }, { "label": "Sincronizando", "value": "Sincronizando" }, { "label": "Sincronizado", "value": "Sincronizado" }, { "label": "Conflito", "value": "Conflito" }, { "label": "Erro", "value": "Erro" }, { "label": "Inativo", "value": "Inativo" }
           ] },
+          { "field": "isCustomer", "label": "Cliente", "type": "boolean" },
+          { "field": "isSupplier", "label": "Fornecedor", "type": "boolean" },
           { "field": "active", "label": "Ativo", "type": "boolean" }
         ],
-        "columns": ["omieConnectionId", "legalName", "tradeName", "documentMasked", "isCustomer", "isSupplier", "active", "syncState", "syncedAt"],
-        "rowActions": [{ "type": "openDetailModal", "label": "Consultar", "icon": "edit", "initialTab": "identificacao" }]
+        "columns": [
+          { "field": "legalName", "label": "Razão social" },
+          { "field": "tradeName", "label": "Nome fantasia" },
+          { "field": "documentMasked", "label": "Documento" },
+          { "field": "isCustomer", "label": "Cliente", "format": "badge", "width": 90 },
+          { "field": "isSupplier", "label": "Fornecedor", "format": "badge", "width": 110 },
+          { "field": "omieConnectionId", "label": "Base Omie" },
+          { "field": "syncState", "label": "Situação", "format": "badge", "width": 130 },
+          { "field": "syncedAt", "label": "Última sync", "format": "date", "width": 150 }
+        ],
+        "rowActions": [
+          { "id": "analisarSincronizacao", "type": "openDetailModal", "label": "Analisar sincronização", "icon": "alert-triangle", "initialTab": "sincronizacao", "hiddenWhen": { "field": "syncState", "in": ["Sincronizado", "Inativo"] }, "permissions": ["cadastros.partner.read.connection"] },
+          { "id": "consultarCadastro", "type": "openDetailModal", "label": "Consultar cadastro", "icon": "search", "initialTab": "resumo", "permissions": ["cadastros.partner.read.connection"] }
+        ]
       },
       "detailModal": {
         "enabled": true,
         "titleField": "legalName",
-        "size": "lg",
-        "defaultTab": "identificacao",
+        "size": "xl",
+        "defaultTab": "resumo",
         "tabs": [
-          { "id": "identificacao", "label": "Identificação", "type": "form", "groups": [
-            { "label": "Origem", "fields": ["omieConnectionId", "externalId", "integrationCode"] },
-            { "label": "Cadastro", "fields": ["legalName", "tradeName", "documentMasked", "isCustomer", "isSupplier", "active"] },
+          { "id": "resumo", "label": "Resumo operacional", "type": "summary", "cards": [
+            { "label": "Situação", "field": "syncState", "format": "badge" },
+            { "label": "Ativo", "field": "active", "format": "badge" },
+            { "label": "Cliente", "field": "isCustomer", "format": "badge" },
+            { "label": "Fornecedor", "field": "isSupplier", "format": "badge" },
+            { "label": "Base Omie", "field": "omieConnectionId", "format": "text" },
+            { "label": "Última sincronização", "field": "syncedAt", "format": "date" }
+          ] },
+          { "id": "cadastro", "label": "Cadastro", "type": "form", "groups": [
+            { "label": "Identificação", "fields": ["legalName", "tradeName", "documentMasked", "active"] },
+            { "label": "Papéis", "fields": ["isCustomer", "isSupplier"] },
             { "label": "Contato", "fields": ["email", "phone"] }
           ] },
+          { "id": "origem", "label": "Origem", "type": "form", "groups": [
+            { "label": "Rastreabilidade Omie", "fields": ["omieConnectionId", "externalId", "integrationCode", "externalUpdatedAt"] }
+          ] },
           { "id": "sincronizacao", "label": "Sincronização", "type": "form", "groups": [
-            { "label": "Estado", "fields": ["syncState", "syncedAt", "externalUpdatedAt", "lastErrorCode"] }
+            { "label": "Situação", "fields": ["syncState", "syncedAt", "lastErrorCode"] },
+            { "label": "Integridade", "fields": ["payloadHash"] }
           ] }
         ]
       }
     },
-    { "model": "CategoryProjection", "mode": "dynamic", "path": "/categorias", "label": "Categorias", "section": "Cadastros", "list": { "filters": [{ "field": "omieConnectionId", "label": "Conexão", "type": "text" }, { "field": "active", "label": "Ativa", "type": "boolean" }], "columns": ["omieConnectionId", "externalId", "description", "nature", "categoryType", "active", "syncState", "syncedAt"] } },
-    { "model": "DepartmentProjection", "mode": "dynamic", "path": "/departamentos", "label": "Departamentos", "section": "Cadastros", "list": { "filters": [{ "field": "omieConnectionId", "label": "Conexão", "type": "text" }, { "field": "active", "label": "Ativo", "type": "boolean" }], "columns": ["omieConnectionId", "externalId", "description", "active", "syncState", "syncedAt"] } },
-    { "model": "ProjectProjection", "mode": "dynamic", "path": "/projetos", "label": "Projetos", "section": "Cadastros", "list": { "filters": [{ "field": "omieConnectionId", "label": "Conexão", "type": "text" }, { "field": "active", "label": "Ativo", "type": "boolean" }], "columns": ["omieConnectionId", "externalId", "integrationCode", "name", "active", "syncState", "syncedAt"] } },
-    { "model": "AttachmentReference", "mode": "minimal", "path": "/anexos", "label": "Anexos (fundação)", "section": "Cadastros", "list": { "filters": [{ "field": "omieConnectionId", "label": "Conexão", "type": "text" }, { "field": "sourceTable", "label": "Origem", "type": "text" }], "columns": ["omieConnectionId", "sourceTable", "sourceExternalId", "fileName", "mediaType", "syncState", "syncedAt"] } }
+    {
+      "model": "CategoryProjection",
+      "mode": "dynamic",
+      "path": "/categorias",
+      "label": "Categorias",
+      "section": "Referenciais",
+      "list": {
+        "filters": [
+          { "field": "omieConnectionId", "label": "Base Omie", "type": "text" },
+          { "field": "syncState", "label": "Situação", "type": "select", "options": [
+            { "label": "Todas", "value": "" }, { "label": "Pendente", "value": "Pendente" }, { "label": "Sincronizando", "value": "Sincronizando" }, { "label": "Sincronizado", "value": "Sincronizado" }, { "label": "Conflito", "value": "Conflito" }, { "label": "Erro", "value": "Erro" }, { "label": "Inativo", "value": "Inativo" }
+          ] },
+          { "field": "active", "label": "Ativa", "type": "boolean" }
+        ],
+        "columns": [
+          { "field": "description", "label": "Categoria" },
+          { "field": "nature", "label": "Natureza" },
+          { "field": "categoryType", "label": "Tipo" },
+          { "field": "dreCode", "label": "DRE" },
+          { "field": "omieConnectionId", "label": "Base Omie" },
+          { "field": "syncState", "label": "Situação", "format": "badge" },
+          { "field": "syncedAt", "label": "Última sync", "format": "date" }
+        ],
+        "rowActions": [
+          { "id": "analisarSincronizacao", "type": "openDetailModal", "label": "Analisar sincronização", "icon": "alert-triangle", "initialTab": "sincronizacao", "hiddenWhen": { "field": "syncState", "in": ["Sincronizado", "Inativo"] }, "permissions": ["cadastros.category.read.connection"] },
+          { "type": "openDetailModal", "label": "Consultar categoria", "icon": "search", "initialTab": "resumo", "permissions": ["cadastros.category.read.connection"] }
+        ]
+      },
+      "detailModal": {
+        "enabled": true,
+        "titleField": "description",
+        "size": "lg",
+        "defaultTab": "resumo",
+        "tabs": [
+          { "id": "resumo", "label": "Resumo", "type": "summary", "cards": [
+            { "label": "Situação", "field": "syncState", "format": "badge" },
+            { "label": "Ativa", "field": "active", "format": "badge" },
+            { "label": "Natureza", "field": "nature", "format": "text" },
+            { "label": "Base Omie", "field": "omieConnectionId", "format": "text" },
+            { "label": "Última sincronização", "field": "syncedAt", "format": "date" }
+          ] },
+          { "id": "classificacao", "label": "Classificação", "type": "form", "groups": [
+            { "label": "Categoria", "fields": ["description", "nature", "categoryType", "dreCode", "active"] },
+            { "label": "Hierarquia", "fields": ["parentExternalId"] }
+          ] },
+          { "id": "origem", "label": "Origem", "type": "form", "groups": [
+            { "label": "Rastreabilidade Omie", "fields": ["omieConnectionId", "externalId"] }
+          ] },
+          { "id": "sincronizacao", "label": "Sincronização", "type": "form", "groups": [
+            { "label": "Situação", "fields": ["syncState", "syncedAt", "lastErrorCode"] },
+            { "label": "Integridade", "fields": ["payloadHash"] }
+          ] }
+        ]
+      }
+    },
+    {
+      "model": "DepartmentProjection",
+      "mode": "dynamic",
+      "path": "/departamentos",
+      "label": "Departamentos",
+      "section": "Referenciais",
+      "list": {
+        "filters": [
+          { "field": "omieConnectionId", "label": "Base Omie", "type": "text" },
+          { "field": "syncState", "label": "Situação", "type": "select", "options": [
+            { "label": "Todas", "value": "" }, { "label": "Pendente", "value": "Pendente" }, { "label": "Sincronizando", "value": "Sincronizando" }, { "label": "Sincronizado", "value": "Sincronizado" }, { "label": "Conflito", "value": "Conflito" }, { "label": "Erro", "value": "Erro" }, { "label": "Inativo", "value": "Inativo" }
+          ] },
+          { "field": "active", "label": "Ativo", "type": "boolean" }
+        ],
+        "columns": [
+          { "field": "description", "label": "Departamento" },
+          { "field": "externalId", "label": "Código Omie" },
+          { "field": "active", "label": "Ativo", "format": "badge" },
+          { "field": "omieConnectionId", "label": "Base Omie" },
+          { "field": "syncState", "label": "Situação", "format": "badge" },
+          { "field": "syncedAt", "label": "Última sync", "format": "date" }
+        ],
+        "rowActions": [
+          { "id": "analisarSincronizacao", "type": "openDetailModal", "label": "Analisar sincronização", "icon": "alert-triangle", "initialTab": "sincronizacao", "hiddenWhen": { "field": "syncState", "in": ["Sincronizado", "Inativo"] }, "permissions": ["cadastros.department.read.connection"] },
+          { "type": "openDetailModal", "label": "Consultar departamento", "icon": "search", "initialTab": "resumo", "permissions": ["cadastros.department.read.connection"] }
+        ]
+      },
+      "detailModal": {
+        "enabled": true,
+        "titleField": "description",
+        "size": "lg",
+        "defaultTab": "resumo",
+        "tabs": [
+          { "id": "resumo", "label": "Resumo", "type": "summary", "cards": [
+            { "label": "Situação", "field": "syncState", "format": "badge" },
+            { "label": "Ativo", "field": "active", "format": "badge" },
+            { "label": "Base Omie", "field": "omieConnectionId", "format": "text" },
+            { "label": "Última sincronização", "field": "syncedAt", "format": "date" }
+          ] },
+          { "id": "cadastro", "label": "Departamento", "type": "form", "groups": [
+            { "label": "Identificação", "fields": ["description", "active"] }
+          ] },
+          { "id": "origem", "label": "Origem", "type": "form", "groups": [
+            { "label": "Rastreabilidade Omie", "fields": ["omieConnectionId", "externalId"] }
+          ] },
+          { "id": "sincronizacao", "label": "Sincronização", "type": "form", "groups": [
+            { "label": "Situação", "fields": ["syncState", "syncedAt", "lastErrorCode"] },
+            { "label": "Integridade", "fields": ["payloadHash"] }
+          ] }
+        ]
+      }
+    },
+    {
+      "model": "ProjectProjection",
+      "mode": "dynamic",
+      "path": "/projetos",
+      "label": "Projetos",
+      "section": "Referenciais",
+      "list": {
+        "filters": [
+          { "field": "omieConnectionId", "label": "Base Omie", "type": "text" },
+          { "field": "syncState", "label": "Situação", "type": "select", "options": [
+            { "label": "Todas", "value": "" }, { "label": "Pendente", "value": "Pendente" }, { "label": "Sincronizando", "value": "Sincronizando" }, { "label": "Sincronizado", "value": "Sincronizado" }, { "label": "Conflito", "value": "Conflito" }, { "label": "Erro", "value": "Erro" }, { "label": "Inativo", "value": "Inativo" }
+          ] },
+          { "field": "active", "label": "Ativo", "type": "boolean" }
+        ],
+        "columns": [
+          { "field": "name", "label": "Projeto" },
+          { "field": "integrationCode", "label": "Código de integração" },
+          { "field": "active", "label": "Ativo", "format": "badge" },
+          { "field": "omieConnectionId", "label": "Base Omie" },
+          { "field": "syncState", "label": "Situação", "format": "badge" },
+          { "field": "syncedAt", "label": "Última sync", "format": "date" }
+        ],
+        "rowActions": [
+          { "id": "analisarSincronizacao", "type": "openDetailModal", "label": "Analisar sincronização", "icon": "alert-triangle", "initialTab": "sincronizacao", "hiddenWhen": { "field": "syncState", "in": ["Sincronizado", "Inativo"] }, "permissions": ["cadastros.project.read.connection"] },
+          { "type": "openDetailModal", "label": "Consultar projeto", "icon": "search", "initialTab": "resumo", "permissions": ["cadastros.project.read.connection"] }
+        ]
+      },
+      "detailModal": {
+        "enabled": true,
+        "titleField": "name",
+        "size": "lg",
+        "defaultTab": "resumo",
+        "tabs": [
+          { "id": "resumo", "label": "Resumo", "type": "summary", "cards": [
+            { "label": "Situação", "field": "syncState", "format": "badge" },
+            { "label": "Ativo", "field": "active", "format": "badge" },
+            { "label": "Base Omie", "field": "omieConnectionId", "format": "text" },
+            { "label": "Última sincronização", "field": "syncedAt", "format": "date" }
+          ] },
+          { "id": "cadastro", "label": "Projeto", "type": "form", "groups": [
+            { "label": "Identificação", "fields": ["name", "integrationCode", "active"] }
+          ] },
+          { "id": "origem", "label": "Origem", "type": "form", "groups": [
+            { "label": "Rastreabilidade Omie", "fields": ["omieConnectionId", "externalId", "externalUpdatedAt"] }
+          ] },
+          { "id": "sincronizacao", "label": "Sincronização", "type": "form", "groups": [
+            { "label": "Situação", "fields": ["syncState", "syncedAt", "lastErrorCode"] },
+            { "label": "Integridade", "fields": ["payloadHash"] }
+          ] }
+        ]
+      }
+    },
+    {
+      "model": "AttachmentReference",
+      "mode": "minimal",
+      "path": "/anexos",
+      "label": "Anexos",
+      "section": "Documentos",
+      "list": {
+        "filters": [
+          { "field": "omieConnectionId", "label": "Base Omie", "type": "text" },
+          { "field": "sourceTable", "label": "Origem", "type": "text" },
+          { "field": "syncState", "label": "Situação", "type": "select", "options": [
+            { "label": "Todas", "value": "" }, { "label": "Pendente", "value": "Pendente" }, { "label": "Sincronizando", "value": "Sincronizando" }, { "label": "Sincronizado", "value": "Sincronizado" }, { "label": "Conflito", "value": "Conflito" }, { "label": "Erro", "value": "Erro" }, { "label": "Inativo", "value": "Inativo" }
+          ] }
+        ],
+        "columns": [
+          { "field": "fileName", "label": "Arquivo" },
+          { "field": "mediaType", "label": "Tipo" },
+          { "field": "sourceTable", "label": "Origem" },
+          { "field": "sourceExternalId", "label": "Registro de origem" },
+          { "field": "omieConnectionId", "label": "Base Omie" },
+          { "field": "syncState", "label": "Situação", "format": "badge" },
+          { "field": "syncedAt", "label": "Última sync", "format": "date" }
+        ],
+        "rowActions": [
+          { "id": "analisarSincronizacao", "type": "openDetailModal", "label": "Analisar sincronização", "icon": "alert-triangle", "initialTab": "sincronizacao", "hiddenWhen": { "field": "syncState", "in": ["Sincronizado", "Inativo"] }, "permissions": ["cadastros.attachment.read.connection"] },
+          { "type": "openDetailModal", "label": "Consultar anexo", "icon": "search", "initialTab": "resumo", "permissions": ["cadastros.attachment.read.connection"] }
+        ]
+      },
+      "detailModal": {
+        "enabled": true,
+        "titleField": "fileName",
+        "size": "lg",
+        "defaultTab": "resumo",
+        "tabs": [
+          { "id": "resumo", "label": "Resumo", "type": "summary", "cards": [
+            { "label": "Situação", "field": "syncState", "format": "badge" },
+            { "label": "Tipo", "field": "mediaType", "format": "text" },
+            { "label": "Origem", "field": "sourceTable", "format": "text" },
+            { "label": "Base Omie", "field": "omieConnectionId", "format": "text" },
+            { "label": "Última sincronização", "field": "syncedAt", "format": "date" }
+          ] },
+          { "id": "documento", "label": "Documento", "type": "form", "groups": [
+            { "label": "Arquivo", "fields": ["fileName", "mediaType"] },
+            { "label": "Vínculo", "fields": ["sourceTable", "sourceExternalId"] }
+          ] },
+          { "id": "origem", "label": "Origem", "type": "form", "groups": [
+            { "label": "Rastreabilidade Omie", "fields": ["omieConnectionId", "externalId", "integrationCode"] }
+          ] },
+          { "id": "sincronizacao", "label": "Sincronização", "type": "form", "groups": [
+            { "label": "Situação", "fields": ["syncState", "syncedAt", "lastErrorCode"] },
+            { "label": "Integridade", "fields": ["contentHash"] }
+          ] }
+        ]
+      }
+    }
   ],
   "pipelines": [],
   "documents": []
