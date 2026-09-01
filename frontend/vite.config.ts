@@ -3,13 +3,14 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
+  resolve: { preserveSymlinks: true },
   server: {
     host: "127.0.0.1",
     port: 5173,
     strictPort: true,
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:4000",
+        target: "http://127.0.0.1:4002",
         changeOrigin: false,
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
