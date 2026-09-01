@@ -10,58 +10,20 @@
   "accessMode": "explicit_users",
   "authorizationMode": "rbac",
   "deploymentMode": "dedicated",
-  "modules": {
-    "collections": true,
-    "documents": true,
-    "pipelines": true,
-    "integrations": true,
-    "omie": false,
-    "assistants": false,
-    "currencies": false
-  },
-  "capabilities": [],
-  "compatibility": {
-    "core": {
-      "minVersion": "0.5.1",
-      "maxVersionExclusive": "0.6.0"
-    }
-  },
-  "activation": {
-    "enabled": true,
-    "configurationVersion": 1,
-    "fields": []
-  },
+  "modules": { "collections": true, "documents": true, "pipelines": true, "integrations": true, "omie": false, "assistants": false, "currencies": false },
+  "capabilities": ["core.collections", "core.integrations", "omie-config.connection-resolver.v1", "cadastros.pickers.v1"],
+  "compatibility": { "core": { "minVersion": "0.5.1", "maxVersionExclusive": "0.6.0" } },
+  "activation": { "enabled": true, "configurationVersion": 1, "fields": [] },
   "rbac": {
     "invitationTtlHours": 72,
-    "permissions": [],
+    "permissions": [
+      "cadastros.partner.read.connection", "cadastros.partner.write.connection", "cadastros.partner.sync.connection", "cadastros.category.read.connection", "cadastros.category.write.connection", "cadastros.category.sync.connection", "cadastros.department.read.connection", "cadastros.department.write.connection", "cadastros.department.sync.connection", "cadastros.project.read.connection", "cadastros.project.write.connection", "cadastros.project.sync.connection", "cadastros.attachment.read.connection", "cadastros.attachment.write.connection", "cadastros.picker.read.connection", "cadastros.audit.read"
+    ],
     "roles": [
-      {
-        "code": "admin",
-        "name": "Administrador",
-        "description": "Administra usuários, acessos e todas as operações da Central.",
-        "admin": true,
-        "permissions": [
-          "*"
-        ]
-      },
-      {
-        "code": "operator",
-        "name": "Operador",
-        "description": "Opera a Central conforme as permissões de negócio declaradas pelo projeto.",
-        "permissions": []
-      },
-      {
-        "code": "developer",
-        "name": "Desenvolvedor",
-        "description": "Implementa e valida o domínio da Central conforme as permissões declaradas pelo projeto.",
-        "permissions": []
-      },
-      {
-        "code": "viewer",
-        "name": "Consulta",
-        "description": "Acessa somente as consultas explicitamente permitidas.",
-        "permissions": []
-      }
+      { "code": "admin", "name": "Administrador", "description": "Administra acessos e todas as operações de Cadastros.", "admin": true, "permissions": ["*"] },
+      { "code": "operator", "name": "Operador", "description": "Consulta e mantém cadastros nas conexões autorizadas.", "permissions": ["cadastros.partner.read.connection", "cadastros.partner.write.connection", "cadastros.category.read.connection", "cadastros.department.read.connection", "cadastros.project.read.connection", "cadastros.project.write.connection", "cadastros.attachment.read.connection", "cadastros.picker.read.connection", "cadastros.audit.read"] },
+      { "code": "developer", "name": "Desenvolvedor", "description": "Implementa e valida contratos, sincronização e mapeamentos.", "permissions": ["cadastros.partner.read.connection", "cadastros.partner.sync.connection", "cadastros.category.read.connection", "cadastros.category.sync.connection", "cadastros.department.read.connection", "cadastros.department.sync.connection", "cadastros.project.read.connection", "cadastros.project.sync.connection", "cadastros.attachment.read.connection", "cadastros.picker.read.connection", "cadastros.audit.read"] },
+      { "code": "viewer", "name": "Consulta", "description": "Consulta cadastros e pickers nas conexões autorizadas.", "permissions": ["cadastros.partner.read.connection", "cadastros.category.read.connection", "cadastros.department.read.connection", "cadastros.project.read.connection", "cadastros.attachment.read.connection", "cadastros.picker.read.connection", "cadastros.audit.read"] }
     ]
   }
 }

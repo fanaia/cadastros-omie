@@ -1,0 +1,104 @@
+{
+  "name": "Cadastros Omie",
+  "slug": "cadastros-omie",
+  "schemaVersion": 1,
+  "models": [
+    {
+      "name": "PartnerProjection",
+      "singular": "partnerProjection",
+      "basePath": "/partners",
+      "crud": { "enabled": true, "roles": { "write": ["__omie_sync__"] } },
+      "fields": {
+        "omieConnectionId": { "kind": "string", "label": "Conexão Omie", "required": true, "index": true, "maxLength": 100 },
+        "externalId": { "kind": "string", "label": "Código Omie", "required": true, "readonly": true, "index": true, "maxLength": 60 },
+        "integrationCode": { "kind": "string", "label": "Código de integração", "readonly": true, "searchable": true, "index": true, "maxLength": 60 },
+        "isCustomer": { "kind": "boolean", "label": "Cliente", "default": false, "readonly": true },
+        "isSupplier": { "kind": "boolean", "label": "Fornecedor", "default": false, "readonly": true },
+        "legalName": { "kind": "string", "label": "Razão social", "required": true, "readonly": true, "searchable": true, "maxLength": 60 },
+        "tradeName": { "kind": "string", "label": "Nome fantasia", "readonly": true, "searchable": true, "maxLength": 100 },
+        "documentMasked": { "kind": "string", "label": "Documento", "readonly": true, "searchable": true, "maxLength": 20 },
+        "email": { "kind": "string", "label": "E-mail", "readonly": true, "searchable": true, "maxLength": 500 },
+        "phone": { "kind": "string", "label": "Telefone", "readonly": true, "maxLength": 24 },
+        "active": { "kind": "boolean", "label": "Ativo", "default": true, "readonly": true, "index": true },
+        "syncState": { "kind": "enum", "label": "Sincronização", "values": ["Pendente", "Sincronizando", "Sincronizado", "Conflito", "Erro", "Inativo"], "default": "Pendente", "readonly": true, "index": true },
+        "syncedAt": { "kind": "date", "label": "Sincronizado em", "readonly": true },
+        "externalUpdatedAt": { "kind": "date", "label": "Alterado no Omie em", "readonly": true },
+        "payloadHash": { "kind": "string", "label": "Hash", "readonly": true, "maxLength": 80 },
+        "lastErrorCode": { "kind": "string", "label": "Último erro", "readonly": true, "maxLength": 80 }
+      }
+    },
+    {
+      "name": "CategoryProjection",
+      "singular": "categoryProjection",
+      "basePath": "/categories",
+      "crud": { "enabled": true, "roles": { "write": ["__omie_sync__"] } },
+      "fields": {
+        "omieConnectionId": { "kind": "string", "label": "Conexão Omie", "required": true, "index": true, "maxLength": 100 },
+        "externalId": { "kind": "string", "label": "Código Omie", "required": true, "readonly": true, "index": true, "maxLength": 20 },
+        "parentExternalId": { "kind": "string", "label": "Categoria superior", "readonly": true, "index": true, "maxLength": 20 },
+        "description": { "kind": "string", "label": "Descrição", "required": true, "readonly": true, "searchable": true, "maxLength": 50 },
+        "nature": { "kind": "string", "label": "Natureza", "readonly": true, "maxLength": 50 },
+        "categoryType": { "kind": "string", "label": "Tipo", "readonly": true, "maxLength": 3 },
+        "dreCode": { "kind": "string", "label": "Código DRE", "readonly": true, "maxLength": 10 },
+        "active": { "kind": "boolean", "label": "Ativa", "default": true, "readonly": true, "index": true },
+        "syncState": { "kind": "enum", "label": "Sincronização", "values": ["Pendente", "Sincronizando", "Sincronizado", "Conflito", "Erro", "Inativo"], "default": "Pendente", "readonly": true, "index": true },
+        "syncedAt": { "kind": "date", "label": "Sincronizada em", "readonly": true },
+        "payloadHash": { "kind": "string", "label": "Hash", "readonly": true, "maxLength": 80 },
+        "lastErrorCode": { "kind": "string", "label": "Último erro", "readonly": true, "maxLength": 80 }
+      }
+    },
+    {
+      "name": "DepartmentProjection",
+      "singular": "departmentProjection",
+      "basePath": "/departments",
+      "crud": { "enabled": true, "roles": { "write": ["__omie_sync__"] } },
+      "fields": {
+        "omieConnectionId": { "kind": "string", "label": "Conexão Omie", "required": true, "index": true, "maxLength": 100 },
+        "externalId": { "kind": "string", "label": "Código Omie", "required": true, "readonly": true, "index": true, "maxLength": 40 },
+        "description": { "kind": "string", "label": "Descrição", "required": true, "readonly": true, "searchable": true, "maxLength": 50 },
+        "active": { "kind": "boolean", "label": "Ativo", "default": true, "readonly": true, "index": true },
+        "syncState": { "kind": "enum", "label": "Sincronização", "values": ["Pendente", "Sincronizando", "Sincronizado", "Conflito", "Erro", "Inativo"], "default": "Pendente", "readonly": true, "index": true },
+        "syncedAt": { "kind": "date", "label": "Sincronizado em", "readonly": true },
+        "payloadHash": { "kind": "string", "label": "Hash", "readonly": true, "maxLength": 80 },
+        "lastErrorCode": { "kind": "string", "label": "Último erro", "readonly": true, "maxLength": 80 }
+      }
+    },
+    {
+      "name": "ProjectProjection",
+      "singular": "projectProjection",
+      "basePath": "/projects",
+      "crud": { "enabled": true, "roles": { "write": ["__omie_sync__"] } },
+      "fields": {
+        "omieConnectionId": { "kind": "string", "label": "Conexão Omie", "required": true, "index": true, "maxLength": 100 },
+        "externalId": { "kind": "string", "label": "Código Omie", "required": true, "readonly": true, "index": true, "maxLength": 40 },
+        "integrationCode": { "kind": "string", "label": "Código de integração", "readonly": true, "searchable": true, "index": true, "maxLength": 20 },
+        "name": { "kind": "string", "label": "Nome", "required": true, "readonly": true, "searchable": true, "maxLength": 70 },
+        "active": { "kind": "boolean", "label": "Ativo", "default": true, "readonly": true, "index": true },
+        "syncState": { "kind": "enum", "label": "Sincronização", "values": ["Pendente", "Sincronizando", "Sincronizado", "Conflito", "Erro", "Inativo"], "default": "Pendente", "readonly": true, "index": true },
+        "syncedAt": { "kind": "date", "label": "Sincronizado em", "readonly": true },
+        "externalUpdatedAt": { "kind": "date", "label": "Alterado no Omie em", "readonly": true },
+        "payloadHash": { "kind": "string", "label": "Hash", "readonly": true, "maxLength": 80 },
+        "lastErrorCode": { "kind": "string", "label": "Último erro", "readonly": true, "maxLength": 80 }
+      }
+    },
+    {
+      "name": "AttachmentReference",
+      "singular": "attachmentReference",
+      "basePath": "/attachments",
+      "crud": { "enabled": true, "roles": { "write": ["__omie_sync__"] } },
+      "fields": {
+        "omieConnectionId": { "kind": "string", "label": "Conexão Omie", "required": true, "index": true, "maxLength": 100 },
+        "externalId": { "kind": "string", "label": "Código do anexo Omie", "required": true, "readonly": true, "index": true, "maxLength": 40 },
+        "integrationCode": { "kind": "string", "label": "Código de integração", "readonly": true, "index": true, "maxLength": 20 },
+        "sourceTable": { "kind": "string", "label": "Tabela de origem", "required": true, "readonly": true, "index": true, "maxLength": 100 },
+        "sourceExternalId": { "kind": "string", "label": "Registro de origem", "required": true, "readonly": true, "index": true, "maxLength": 60 },
+        "fileName": { "kind": "string", "label": "Arquivo", "required": true, "readonly": true, "searchable": true, "maxLength": 100 },
+        "mediaType": { "kind": "string", "label": "Tipo", "readonly": true, "maxLength": 100 },
+        "contentHash": { "kind": "string", "label": "Hash", "readonly": true, "maxLength": 80 },
+        "syncState": { "kind": "enum", "label": "Sincronização", "values": ["Pendente", "Sincronizando", "Sincronizado", "Conflito", "Erro", "Inativo"], "default": "Pendente", "readonly": true, "index": true },
+        "syncedAt": { "kind": "date", "label": "Sincronizado em", "readonly": true },
+        "lastErrorCode": { "kind": "string", "label": "Último erro", "readonly": true, "maxLength": 80 }
+      }
+    }
+  ]
+}
