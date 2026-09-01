@@ -1,0 +1,13 @@
+{
+  "name": "@oondemand/cadastros-omie-backend",
+  "version": "0.2.0",
+  "private": true,
+  "scripts": {
+    "dev": "oonCore-back dev",
+    "start": "oonCore-back start",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "@oondemand/oon-core-back": "0.5.1"
+  }
+}
