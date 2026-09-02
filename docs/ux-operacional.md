@@ -54,3 +54,4 @@ Comandos reais de sincronizar, reprocessar, reconciliar conflito, criar ou alter
 - Campos técnicos ficam em grupos secundários.
 - Projeções não ganham edição genérica.
 - `ooncore:docs:check`, `ooncore:conformance` e testes permanecem verdes.
+

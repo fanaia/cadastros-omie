@@ -1,18 +1,18 @@
 {
   "name": "@oondemand/cadastros-omie-frontend",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "oonCore-front dev",
     "build": "oonCore-front build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "preview": "oonCore-front preview"
   },
   "dependencies": {
     "@chakra-ui/react": "^3.13.0",
     "@emotion/react": "^11.14.0",
-    "@oondemand/cadastros-omie-ui": "file:../ui",
-    "@oondemand/oon-core-front": "0.5.1",
+    "@oondemand/oon-core-front": "^0.6.1",
     "@tanstack/react-query": "^5.65.0",
     "@tanstack/react-table": "^8.20.6",
     "react": "^18.3.1",

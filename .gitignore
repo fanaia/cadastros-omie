@@ -7,3 +7,4 @@ frontend/dist/
 !.env.example
 dist/
 .ooncore/context.generated.md
+

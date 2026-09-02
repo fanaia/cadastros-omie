@@ -28,3 +28,4 @@
 ## Gates
 
 Nenhuma chamada real ocorre sem conexão autorizada, cofre e consumer contract. `core.integrations.omie` permanece desabilitado. Cada incremento atualiza paridade, contratos, ADRs, testes e evidências.
+

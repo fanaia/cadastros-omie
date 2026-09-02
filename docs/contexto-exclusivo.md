@@ -167,3 +167,4 @@ Homologar duas bases do mesmo tenant e uma de tenant distinto, cobrindo registro
 ## Gate atual
 
 G0 documentado. G1 inicia com projeções declarativas, UI de consulta e contrato do adapter local. Mutações Omie e sincronização real permanecem bloqueadas até o contrato de Configurações, cofre, transporte do adapter e testes de isolamento estarem prontos.
+

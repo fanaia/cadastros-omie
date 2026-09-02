@@ -52,3 +52,4 @@ Entidades disponíveis: clientes/fornecedores, categorias, departamentos e proje
 - Configuração persiste sem credenciais e respeita conexão/tenant/instância/ambiente.
 - Teste de sincronização apresenta resultado por entidade e não produz mutação.
 - Nenhuma alteração ocorre na Plataforma, no OonCore ou em outros módulos.
+

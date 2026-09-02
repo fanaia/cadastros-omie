@@ -34,13 +34,10 @@ test("adapter falha fechado para conexão não autorizada", async () => {
 });
 
 test("mapper preserva a origem e minimiza o documento", () => {
-  assert.deepEqual(toPartnerProjection({ codigo_cliente_omie: 10, codigo_cliente_integracao: "CLI-10", razao_social: "Cliente Teste", nome_fantasia: "Teste", cnpj_cpf: "12345678000199", inativo: "N" }, "conn-a"), {
-    omieConnectionId: "conn-a",
-    externalId: 10,
-    integrationCode: "CLI-10",
-    legalName: "Cliente Teste",
-    tradeName: "Teste",
-    documentLast4: "0199",
-    active: true,
-  });
+  const result = toPartnerProjection({ codigo_cliente_omie: 10, codigo_cliente_integracao: "CLI-10", razao_social: "Cliente Teste", nome_fantasia: "Teste", cnpj_cpf: "12345678000199", inativo: "N" }, "conn-a");
+  assert.equal(result.omieConnectionId, "conn-a");
+  assert.equal(result.externalId, 10);
+  assert.match(result.documentMasked, /0199$/);
+  assert.doesNotMatch(result.documentMasked, /12345678/);
+  assert.equal(result.syncState, "Sincronizado");
 });

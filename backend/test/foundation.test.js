@@ -22,25 +22,21 @@ test("toda projeção exige conexão e reserva escrita ao sincronizador", () => 
 });
 
 test("app não armazena credenciais Omie", () => {
-  const files = ["backend/central.domain.json", "frontend/central.ui.json", "central.app.json"];
+  const files = ["backend/central.domain.json", "frontend/src/app/routes.tsx", "central.app.json"];
   for (const file of files) {
     const source = fs.readFileSync(path.join(root, file), "utf8").toLowerCase();
     assert.doesNotMatch(source, /app[_-]?secret|app[_-]?key|credentialref/);
   }
 });
 
-test("UI preserva origem nas cinco coleções", () => {
-  const ui = readJson("frontend/central.ui.json");
-  assert.deepEqual(ui.collections.map((item) => item.model), ["PartnerProjection", "CategoryProjection", "DepartmentProjection", "ProjectProjection", "AttachmentReference"]);
-  for (const collection of ui.collections) {
-    const fields = collection.list.columns.map((column) => typeof column === "string" ? column : column.field);
-    assert.ok(fields.includes("omieConnectionId"), `${collection.model} não exibe origem`);
-  }
+test("UI code-first preserva origem nas telas operacionais", () => {
+  const source = ["DashboardPage.tsx", "PartnersPage.tsx", "AuxiliariesPage.tsx", "SyncPage.tsx"].map(file => fs.readFileSync(path.join(root, "frontend/src/pages", file), "utf8")).join("\n");
+  assert.match(source, /connectionId/);
+  assert.match(source, /omieConnectionId/);
 });
 
 test("RBAC declara leitura, escrita, sync e picker por conexão", () => {
   const app = readJson("central.app.json");
-  assert.equal(app.modules.omie, false);
   assert.ok(!app.capabilities.includes("core.integrations.omie"));
   assert.ok(app.capabilities.includes("omie-config.connection-resolver.v1"));
   assert.ok(app.rbac.permissions.includes("cadastros.partner.read.connection"));

@@ -10,4 +10,4 @@
 
 Prompt operacional:
 
-> Atualize os três pacotes OonCore para a linha 0.5.x, preserve o domínio e o AGENTS.md do projeto, sincronize `.ooncore`, consulte os contratos públicos de back e front, use apenas extensões suportadas, execute os gates e homologue em `127.0.0.1` sem conexão com a plataforma. Não crie autenticação, ativação, RBAC, CRUD, shell ou infraestrutura paralelos.
+> Atualize os três pacotes OonCore para a linha 0.6.x, preserve o domínio e o AGENTS.md do projeto, sincronize `.ooncore`, consulte os contratos públicos de back e front, use apenas extensões suportadas, execute os gates e homologue em `127.0.0.1` sem conexão com a plataforma. Não crie autenticação, ativação, RBAC, CRUD, shell ou infraestrutura paralelos.
