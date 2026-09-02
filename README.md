@@ -14,7 +14,7 @@ Bounded context de clientes/fornecedores, projetos, categorias, departamentos, a
 
 ## Estado atual
 
-Implementado em OonCore 0.6.1 com frontend code-first. O app oferece dashboard multibase, pesquisa de clientes/fornecedores, cadastros auxiliares, inclusão idempotente de parceiros e projetos e uma central de sincronização. A sincronização percorre todas as páginas disponíveis e atualiza projeções por `connectionId + externalId`. As credenciais são resolvidas de forma efêmera no backend de `configuracoes-omie`; este app não as aceita nem persiste.
+Implementado em OonCore 0.6.1 com frontend code-first. O app oferece dashboard multibase, pesquisa de clientes/fornecedores, cadastros auxiliares, inclusão idempotente de parceiros e projetos e uma central de sincronização. A sincronização percorre todas as páginas disponíveis e atualiza projeções por `tenantId + connectionId + externalId`, preservando o isolamento e a visibilidade de cada base. As credenciais são resolvidas de forma efêmera no backend de `configuracoes-omie`; este app não as aceita nem persiste.
 
 ## Validação
 

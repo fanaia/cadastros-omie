@@ -9,6 +9,7 @@
       "basePath": "/partners",
       "crud": { "enabled": true, "roles": { "write": ["__omie_sync__"] } },
       "fields": {
+        "tenantId": { "kind": "string", "label": "Tenant", "required": true, "readonly": true, "index": true, "maxLength": 160 },
         "omieConnectionId": { "kind": "string", "label": "Conexão Omie", "required": true, "index": true, "maxLength": 100 },
         "externalId": { "kind": "string", "label": "Código Omie", "required": true, "readonly": true, "index": true, "maxLength": 60 },
         "integrationCode": { "kind": "string", "label": "Código de integração", "readonly": true, "searchable": true, "index": true, "maxLength": 60 },
@@ -33,6 +34,7 @@
       "basePath": "/categories",
       "crud": { "enabled": true, "roles": { "write": ["__omie_sync__"] } },
       "fields": {
+        "tenantId": { "kind": "string", "label": "Tenant", "required": true, "readonly": true, "index": true, "maxLength": 160 },
         "omieConnectionId": { "kind": "string", "label": "Conexão Omie", "required": true, "index": true, "maxLength": 100 },
         "externalId": { "kind": "string", "label": "Código Omie", "required": true, "readonly": true, "index": true, "maxLength": 20 },
         "parentExternalId": { "kind": "string", "label": "Categoria superior", "readonly": true, "index": true, "maxLength": 20 },
@@ -53,6 +55,7 @@
       "basePath": "/departments",
       "crud": { "enabled": true, "roles": { "write": ["__omie_sync__"] } },
       "fields": {
+        "tenantId": { "kind": "string", "label": "Tenant", "required": true, "readonly": true, "index": true, "maxLength": 160 },
         "omieConnectionId": { "kind": "string", "label": "Conexão Omie", "required": true, "index": true, "maxLength": 100 },
         "externalId": { "kind": "string", "label": "Código Omie", "required": true, "readonly": true, "index": true, "maxLength": 40 },
         "description": { "kind": "string", "label": "Descrição", "required": true, "readonly": true, "searchable": true, "maxLength": 50 },
@@ -69,6 +72,7 @@
       "basePath": "/projects",
       "crud": { "enabled": true, "roles": { "write": ["__omie_sync__"] } },
       "fields": {
+        "tenantId": { "kind": "string", "label": "Tenant", "required": true, "readonly": true, "index": true, "maxLength": 160 },
         "omieConnectionId": { "kind": "string", "label": "Conexão Omie", "required": true, "index": true, "maxLength": 100 },
         "externalId": { "kind": "string", "label": "Código Omie", "required": true, "readonly": true, "index": true, "maxLength": 40 },
         "integrationCode": { "kind": "string", "label": "Código de integração", "readonly": true, "searchable": true, "index": true, "maxLength": 20 },
@@ -87,6 +91,7 @@
       "basePath": "/attachments",
       "crud": { "enabled": true, "roles": { "write": ["__omie_sync__"] } },
       "fields": {
+        "tenantId": { "kind": "string", "label": "Tenant", "required": true, "readonly": true, "index": true, "maxLength": 160 },
         "omieConnectionId": { "kind": "string", "label": "Conexão Omie", "required": true, "index": true, "maxLength": 100 },
         "externalId": { "kind": "string", "label": "Código do anexo Omie", "required": true, "readonly": true, "index": true, "maxLength": 40 },
         "integrationCode": { "kind": "string", "label": "Código de integração", "readonly": true, "index": true, "maxLength": 20 },
@@ -102,4 +107,3 @@
     }
   ]
 }
-

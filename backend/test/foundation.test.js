@@ -11,9 +11,12 @@ test("manifesto declara todas as projeções fundacionais", () => {
   assert.deepEqual(domain.models.map((model) => model.name), ["PartnerProjection", "CategoryProjection", "DepartmentProjection", "ProjectProjection", "AttachmentReference"]);
 });
 
-test("toda projeção exige conexão e reserva escrita ao sincronizador", () => {
+test("toda projeção exige tenant e conexão e reserva escrita ao sincronizador", () => {
   const domain = readJson("backend/central.domain.json");
   for (const model of domain.models) {
+    assert.equal(model.fields.tenantId.required, true, `${model.name} sem tenant obrigatório`);
+    assert.equal(model.fields.tenantId.readonly, true, `${model.name}.tenantId deve ser readonly`);
+    assert.equal(model.fields.tenantId.index, true, `${model.name}.tenantId deve ser indexado`);
     assert.equal(model.fields.omieConnectionId.required, true, `${model.name} sem conexão obrigatória`);
     assert.ok(model.crud.roles.write.includes("__omie_sync__"), `${model.name} expõe escrita fora do worker`);
     assert.equal(model.fields.externalId.readonly, true, `${model.name}.externalId deve ser readonly`);
