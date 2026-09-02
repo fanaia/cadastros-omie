@@ -20,7 +20,7 @@ Entregar o primeiro uso do app **Cadastros Omie** exclusivamente neste repositó
 | `OMIE_CONFIG_SERVICE_URL` | sim | URL HTTPS do app Configurações | URL pública normalizada |
 | `OMIE_CONFIG_RESOLVER_SHARED_SECRET` | sim | Assina a resolução backend-to-backend | somente `configurada`/`ausente` |
 | `OMIE_CONFIG_APP_INSTANCE_ID` | sim | Seleciona a instância licenciada do app Configurações | identificador operacional |
-| `APP_INSTANCE_ID` | sim | Isolamento da instância licenciada | identificador operacional |
+| `APP_INSTANCE_ID` | não (legado) | Fallback para runtimes antigos; o OonCore fornece a identidade do deployment/instância | identificador operacional |
 | `APP_ENVIRONMENT` | sim | Isolamento entre ambientes | nome do ambiente |
 
 O navegador não configura nem recebe o segredo compartilhado. Quando ele está ausente, o teste falha fechado e a página informa qual requisito de implantação deve ser corrigido.
@@ -52,4 +52,3 @@ Entidades disponíveis: clientes/fornecedores, categorias, departamentos e proje
 - Configuração persiste sem credenciais e respeita conexão/tenant/instância/ambiente.
 - Teste de sincronização apresenta resultado por entidade e não produz mutação.
 - Nenhuma alteração ocorre na Plataforma, no OonCore ou em outros módulos.
-

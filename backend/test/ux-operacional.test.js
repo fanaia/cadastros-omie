@@ -19,3 +19,10 @@ test("sincronização exibe base, protocolo e pré-requisitos", () => {
   const source = fs.readFileSync(path.join(root, "frontend/src/pages/SyncPage.tsx"), "utf8");
   for (const value of ["connectionId", "correlationId", "requirements"]) assert.match(source, new RegExp(value));
 });
+
+test("navegação usa abas, modais e toasts acessíveis", () => {
+  const ui = fs.readFileSync(path.join(root, "frontend/src/components/Ui.tsx"), "utf8");
+  const journeys = ["PartnersPage.tsx", "AuxiliariesPage.tsx"].map(file => fs.readFileSync(path.join(root, "frontend/src/pages", file), "utf8")).join("\n");
+  for (const contract of ["role=\"tablist\"", "aria-live=\"polite\"", "aria-modal=\"true\""]) assert.match(ui, new RegExp(contract));
+  assert.match(journeys, /<Modal/);
+});
