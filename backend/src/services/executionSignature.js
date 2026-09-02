@@ -26,3 +26,4 @@ function signExecutionRequest(secret, body, timestamp, clientId) {
 }
 
 module.exports = { canonicalExecutionRequest, signExecutionRequest };
+

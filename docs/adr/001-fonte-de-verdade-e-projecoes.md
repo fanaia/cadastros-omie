@@ -15,3 +15,4 @@ DTOs Omie são traduzidos no adapter. Payload bruto não atravessa o domínio ne
 - Alterações locais são intenções até confirmação do Omie.
 - Conflitos não são sobrescritos silenciosamente.
 - Índices únicos são compostos pela conexão; nunca globais entre bases.
+

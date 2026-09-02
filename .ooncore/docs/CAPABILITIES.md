@@ -4,7 +4,7 @@ Consulte este catálogo antes de criar infraestrutura ou componentes customizado
 
 | Capacidade | Backend | Frontend | Declaração/extensão | Local | Plataforma |
 |---|---|---|---|---|---|
-| Models e CRUD | `defineModel`, domain manifest, `/core/*` | `CoreCollection`, hooks de API | `central.domain.json`, `central.ui.json` | Sim | Sim |
+| Models e CRUD | `defineModel`, domain manifest, `/core/*` | `CoreCollection`, hooks de API | `central.domain.json`, composição code-first | Sim | Sim |
 | Metadata | registry e `/core/metadata` | `useCoreMetadata`, renderers | models/domain manifest | Sim | Sim |
 | Validações e fórmulas | `defineValidation`, domain rules | prévia reativa | domain manifest/validation | Sim | Sim |
 | Esteiras | process manifest/runtime | `CorePipeline` | `central.process.json`, UI manifest | Sim | Sim |
@@ -14,8 +14,7 @@ Consulte este catálogo antes de criar infraestrutura ou componentes customizado
 | Tenant e escopo | access context e scope helpers | `TenantProvider` | `central.app.json` | Contexto técnico | Contexto autorizado |
 | Auditoria | CRUD e request context | headers do SDK | automática/extensão | Local | Operacional |
 | Rotas customizadas | `defineRoutes` | página/ação declarada | `backend/src/routes` | Sim | Sim |
-| Jobs e workers | process/integration workers | status operacional | manifestos/hooks | Sim | Sim |
-| Integrações | runtime/provider registry | `CoreIntegration` | mapping/provider suportado | Dublê ou credencial local | Credencial operacional |
+| Jobs e workers | process workers | status operacional | manifestos/hooks | Sim | Sim |
 | E-mail transacional | capability nativa | `CoreTransactionalEmail` | capability settings | Dublê/local | Provider configurado |
 | PDF | capability nativa | consumo por ação | capability contract | Dublê/local | Provider configurado |
 | Publicação/promoção | contratos de delivery | indisponível no App | CLI/ponte pública | Não | Sim |

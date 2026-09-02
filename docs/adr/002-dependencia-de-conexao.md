@@ -14,3 +14,4 @@
 - Consumer contract entre os módulos é gate para integração real.
 - A UI pode selecionar bases autorizadas, mas não concede acesso.
 - Mapeamentos, catálogo de operações e reconciliação de Cadastros pertencem a este side-car.
+

@@ -47,3 +47,4 @@ async function omieHttpTransport({ endpoint, timeoutMs, body, correlationId, fet
 }
 
 module.exports = { omieHttpTransport, postJson };
+

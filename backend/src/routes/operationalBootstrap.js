@@ -24,6 +24,27 @@ function handle(handler) {
 }
 
 defineRoutes("/cadastros", (router) => {
+  router.private.get("/overview", { permission: READ_PERMISSIONS }, handle(async (req, res) => {
+    res.json(await service.overview(req.accessContext));
+  }));
+  router.private.get("/connections", { permission: READ_PERMISSIONS }, handle(async (req, res) => {
+    res.json(await service.listConnections(req.accessContext));
+  }));
+  router.private.get("/entities/:entity", { permission: READ_PERMISSIONS }, handle(async (req, res) => {
+    res.json(await service.listEntities(req.accessContext, req.params.entity, req.query));
+  }));
+  router.private.post("/entities/partners", {
+    permission: "cadastros.partner.write.connection",
+    audit: { entidade: "Partner", acao: "upsert" },
+  }, handle(async (req, res) => {
+    res.status(201).json(await service.upsertPartner(req.accessContext, req.body, req.get("Idempotency-Key")));
+  }));
+  router.private.post("/entities/projects", {
+    permission: "cadastros.project.write.connection",
+    audit: { entidade: "Project", acao: "upsert" },
+  }, handle(async (req, res) => {
+    res.status(201).json(await service.upsertProject(req.accessContext, req.body, req.get("Idempotency-Key")));
+  }));
   router.private.get("/bootstrap", { permission: READ_PERMISSIONS }, handle(async (req, res) => {
     res.json(await service.describeBootstrap(req.accessContext));
   }));
@@ -37,6 +58,12 @@ defineRoutes("/cadastros", (router) => {
     permission: SYNC_PERMISSIONS,
     audit: { entidade: "RegistrationBootstrap", acao: "test" },
   }, handle(async (req, res) => {
-    res.json(await service.testSynchronization(req.accessContext));
+    res.json(await service.testSynchronization(req.accessContext, req.body));
+  }));
+  router.private.post("/sync/run", {
+    permission: SYNC_PERMISSIONS,
+    audit: { entidade: "RegistrationSync", acao: "run" },
+  }, handle(async (req, res) => {
+    res.status(202).json(await service.syncConnection(req.accessContext, req.body.connectionId));
   }));
 });

@@ -1,0 +1,21 @@
+import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useOonApi } from "@oondemand/oon-core-front/hooks";
+import { Badge, Button, Card, Empty, Field, Notice, Page, errorMessage, toneFor } from "../components/Ui";
+import type { Auxiliary, ConnectionConfig, Paged } from "../types";
+
+const TABS = [{ id: "categories", label: "Categorias" }, { id: "departments", label: "Departamentos" }, { id: "projects", label: "Projetos" }] as const;
+
+export function AuxiliariesPage() {
+  const { http } = useOonApi();
+  const [connections, setConnections] = useState<ConnectionConfig[]>([]); const [connectionId, setConnectionId] = useState(""); const [entity, setEntity] = useState<(typeof TABS)[number]["id"]>("categories"); const [query, setQuery] = useState(""); const [data, setData] = useState<Paged<Auxiliary> | null>(null); const [showForm, setShowForm] = useState(false); const [name, setName] = useState(""); const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const loadConnections = useCallback(async () => { const rows = (await http.get<{ items: ConnectionConfig[] }>("/cadastros/connections")).data.items; setConnections(rows); setConnectionId(current => current || rows[0]?.connectionId || ""); }, [http]);
+  const load = useCallback(async () => { if (!connectionId) return; const params = new URLSearchParams({ connectionId, query, page: "1", pageSize: "50" }); setData((await http.get<Paged<Auxiliary>>(`/cadastros/entities/${entity}?${params}`)).data); }, [connectionId, entity, http, query]);
+  useEffect(() => { void loadConnections().catch(reason => setNotice({ tone: "error", text: errorMessage(reason) })); }, [loadConnections]); useEffect(() => { void load().catch(reason => setNotice({ tone: "error", text: errorMessage(reason) })); }, [load]);
+  async function save(event: FormEvent) { event.preventDefault(); try { await http.post("/cadastros/entities/projects", { connectionId, name }, { headers: { "Idempotency-Key": crypto.randomUUID() } }); setName(""); setShowForm(false); await load(); setNotice({ tone: "success", text: "Projeto salvo no Omie." }); } catch (reason) { setNotice({ tone: "error", text: errorMessage(reason) }); } }
+  return <Page eyebrow="Cadastros auxiliares" title="Referências consistentes em toda a operação" description="Categorias, departamentos e projetos organizados por base, com pesquisa no mesmo lugar." actions={entity === "projects" ? <Button disabled={!connectionId} onClick={() => setShowForm(value => !value)}>{showForm ? "Cancelar" : "Novo projeto"}</Button> : undefined}>
+    {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
+    <Card><div className="oon-toolbar"><div className="oon-actions">{TABS.map(tab => <Button key={tab.id} variant={tab.id === entity ? "primary" : "secondary"} onClick={() => setEntity(tab.id)}>{tab.label}</Button>)}</div><Field label="Base"><select value={connectionId} onChange={event => setConnectionId(event.target.value)}>{connections.map(row => <option key={row.connectionId}>{row.connectionId}</option>)}</select></Field><Field label="Pesquisar"><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Código ou descrição" /></Field></div></Card>
+    {showForm && <Card title="Novo projeto"><form className="oon-actions" onSubmit={save}><Field label="Nome do projeto"><input required maxLength={70} value={name} onChange={event => setName(event.target.value)} /></Field><Button type="submit">Salvar no Omie</Button></form></Card>}
+    <Card title={TABS.find(tab => tab.id === entity)?.label} description={data ? `${data.total} registro(s) na base selecionada` : "Carregando…"}>{!data?.items.length ? <Empty title="Nenhum registro encontrado" description="Execute a sincronização ou revise a pesquisa." /> : <div className="oon-list">{data.items.map(row => <article className="oon-list-item" key={row._id}><div><strong>{row.name || row.description}</strong><small>Código Omie {row.externalId}</small></div><div><small>Base</small><strong>{row.omieConnectionId}</strong></div><Badge tone={toneFor(row.syncState)}>{row.syncState}</Badge><small>{row.syncedAt ? new Date(row.syncedAt).toLocaleString("pt-BR") : "Pendente"}</small></article>)}</div>}</Card>
+  </Page>;
+}

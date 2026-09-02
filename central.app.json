@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/@oondemand/create-central-oon/schemas/central.app.schema.json",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "cadastros-omie",
   "name": "Cadastros Omie",
   "slug": "cadastros-omie",
@@ -10,9 +10,9 @@
   "accessMode": "explicit_users",
   "authorizationMode": "rbac",
   "deploymentMode": "dedicated",
-  "modules": { "collections": true, "documents": true, "pipelines": true, "integrations": true, "omie": false, "assistants": false, "currencies": false },
-  "capabilities": ["core.collections", "core.integrations", "omie-config.connection-resolver.v1", "cadastros.pickers.v1"],
-  "compatibility": { "core": { "minVersion": "0.5.1", "maxVersionExclusive": "0.6.0" } },
+  "modules": { "collections": true, "documents": true, "pipelines": true, "assistants": false, "currencies": false },
+  "capabilities": ["core.collections", "omie-config.connection-resolver.v1", "cadastros.pickers.v1"],
+  "compatibility": { "core": { "minVersion": "0.6.1", "maxVersionExclusive": "0.7.0" } },
   "activation": { "enabled": true, "configurationVersion": 1, "fields": [] },
   "rbac": {
     "invitationTtlHours": 72,

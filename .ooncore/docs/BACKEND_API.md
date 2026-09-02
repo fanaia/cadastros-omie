@@ -7,7 +7,7 @@ Importe exclusivamente de `@oondemand/oon-core-back`. Caminhos internos não tê
 - `start(options)`: carrega a Central, conecta Mongo, inicializa capabilities e inicia HTTP. `options.listen=false` devolve somente o app.
 - `createApp()`: cria o Express já protegido e com rotas do Core.
 - `activate()`: fluxo legado de ativação; não é usado no runtime local.
-- `defineCentral`, `defineModel`, `defineCollection`, `defineDocument`, `definePipeline`, `defineOmieMapping`, `defineRoutes`, `defineValidation`, `defineTrigger`: extensões imperativas suportadas.
+- `defineCentral`, `defineModel`, `defineCollection`, `defineDocument`, `definePipeline`, `defineRoutes`, `defineValidation`, `defineTrigger`: extensões imperativas suportadas.
 - `fields`: factories de campos compatíveis com schema e metadata.
 - `registry`: registry do processo; use APIs `define*`, não mutações internas.
 
@@ -27,10 +27,8 @@ Importe exclusivamente de `@oondemand/oon-core-back`. Caminhos internos não tê
 
 Erros de manifesto carregam `code`, `statusCode` e `issues[]` com `path` e `message`.
 
-## Integrações e capabilities
+## Capabilities
 
-- `integrations`, `registerIntegrationProvider`, `enqueueIntegration`, `receiveIntegrationWebhook`.
-- `omie`, `omieModule`, `createOmieClient`, `OmieApiError`, `enqueueOmieCall`, `ensureOmieProviderRegistered`, `collectOmieDefinitions`, `describeOmieDefinitions`, `saveOmieConfiguration`, `listOmieConfigurations`, `testOmieConnection`.
 - `capabilities`, `PdfRenderingError`, `TransactionalEmailError`.
 - `operationalRequestHeaders(options)`: headers de identidade do Deployment. Retorna `LOCAL_OPERATION_NOT_SUPPORTED` no runtime local; nunca improvise identidade local.
 

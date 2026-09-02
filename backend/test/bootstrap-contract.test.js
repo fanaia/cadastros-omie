@@ -27,16 +27,15 @@ test("bootstrap não aceita nem publica credenciais Omie", () => {
   const sources = [
     "backend/src/routes/operationalBootstrap.js",
     "backend/src/services/bootstrapService.js",
-    "ui/src/index.tsx",
+    "frontend/src/pages/SyncPage.tsx",
   ].map((file) => fs.readFileSync(path.join(root, file), "utf8")).join("\n");
   assert.doesNotMatch(sources, /app[_-]?(key|secret)/i);
   assert.match(sources, /resolveExecutionContext/);
 });
 
-test("página customizada substitui CRUD no primeiro uso", () => {
-  const ui = JSON.parse(fs.readFileSync(path.join(root, "frontend/central.ui.json"), "utf8"));
+test("frontend code-first substitui o manifesto declarativo", () => {
   const main = fs.readFileSync(path.join(root, "frontend/src/main.tsx"), "utf8");
-  assert.equal(ui.pages[0].label, "Inicialização");
-  assert.equal(ui.pages[0].component, "CadastrosInitializationPage");
-  assert.match(main, /customComponents:\s*\{ CadastrosInitializationPage \}/);
+  const app = fs.readFileSync(path.join(root, "frontend/src/app/app.tsx"), "utf8");
+  assert.match(main, /startOonApp/);
+  assert.match(app, /defineOonApp/);
 });

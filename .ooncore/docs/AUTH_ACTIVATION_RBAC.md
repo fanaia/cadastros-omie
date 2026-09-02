@@ -26,3 +26,12 @@ O estado é `ativa_local`; o `ActivationGuard` não cria nem consulta `Instancia
 - não implemente `verifyToken` em Central member/portal;
 - não persista bearer no frontend;
 - não trate simulação local como identidade operacional.
+
+
+## Apps globais e tenant-alvo
+
+Apps com `tenancyModel=none` não montam `TenantProvider`, não restauram tenant
+do storage e não consomem o parâmetro reservado `tenant`. Cockpits globais
+devem transportar a organização administrada com um identificador próprio,
+como `targetTenantId`, e o BFF deve convertê-lo no header específico do
+contrato administrativo. Esse alvo nunca integra a sessão do App.

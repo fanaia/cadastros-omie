@@ -19,3 +19,4 @@ Snapshot oficial: 2026-09-01.
 Métodos em lote marcados como deprecated na documentação oficial não serão usados em código novo.
 
 Referências: [catálogo oficial](https://developer.omie.com.br/service-list/), [clientes](https://app.omie.com.br/api/v1/geral/clientes/), [projetos](https://app.omie.com.br/api/v1/geral/projetos/), [departamentos](https://app.omie.com.br/api/v1/geral/departamentos/), [categorias](https://app.omie.com.br/api/v1/geral/categorias/) e [anexos](https://app.omie.com.br/api/v1/geral/anexo/).
+

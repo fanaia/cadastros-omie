@@ -11,7 +11,7 @@ Use este checklist antes de concluir qualquer tarefa de codificação em uma Cen
 
 ## Backend
 
-- [ ] Usei model, validation, trigger, hook, mapping ou integration quando aplicável.
+- [ ] Usei model, validation, trigger, hook ou mapping quando aplicável.
 - [ ] Evitei recriar CRUD.
 - [ ] Validei entrada.
 - [ ] Validei permissão no backend.
@@ -21,9 +21,9 @@ Use este checklist antes de concluir qualquer tarefa de codificação em uma Cen
 
 ## Frontend
 
-- [ ] Usei `central.ui.json` antes de criar componente customizado.
-- [ ] Evitei recriar shell, rotas, menu, datagrid ou form.
-- [ ] Usei override apenas quando necessário.
+- [ ] Defini o App com `defineOonApp` e `startOonApp`.
+- [ ] Reutilizei shell, guards, primitives e padrões públicos do Core.
+- [ ] Mantive rotas, navegação, páginas, layouts e temas no código do App.
 - [ ] Não coloquei regra crítica apenas no frontend.
 
 ## Integrações

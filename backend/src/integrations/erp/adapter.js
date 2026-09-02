@@ -72,3 +72,4 @@ function createRegistrationAdapter({ resolveExecutionContext, transport, audit =
 }
 
 module.exports = { REQUIRED_CONTEXT, assertContext, createRegistrationAdapter };
+
