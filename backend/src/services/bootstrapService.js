@@ -5,6 +5,8 @@ const { toCategoryProjection, toDepartmentProjection, toPartnerProjection, toPro
 const { signExecutionRequest } = require("./executionSignature");
 const { omieHttpTransport, postJson } = require("./httpTransport");
 const { runtimeScope } = require("./runtimeScope");
+const { hasResolverBinding, resolverBindingFor } = require("./resolverBindingService");
+const { resolveBindingKey } = require("./bindingVault");
 
 const ENTITY_DEFINITIONS = Object.freeze({
   partners: { label: "Clientes e fornecedores", operationId: "partner.list", permission: "cadastros.partner.sync.connection", model: "PartnerProjection", arrayKeys: ["clientes_cadastro"], mapper: toPartnerProjection },
@@ -18,10 +20,10 @@ function requiredText(value, field, maxLength = 200) { const text = String(value
 function mongo(name) { const entry = registry.getModel(name); if (!entry) throw appError("MODEL_NOT_READY", `Modelo ${name} indisponível.`, 503); return entry.mongooseModel; }
 function scopeFilter(scope) { return { tenantId: scope.tenantId, appInstanceId: scope.appInstanceId, environment: scope.environment }; }
 function normalizedServiceUrl() { const value = requiredText(process.env.OMIE_CONFIG_SERVICE_URL, "OMIE_CONFIG_SERVICE_URL", 500).replace(/\/+$/, ""); let parsed; try { parsed = new URL(value); } catch { throw appError("INVALID_SERVICE_URL", "A URL do app Configurações é inválida.", 503); } const local = ["localhost", "127.0.0.1", "::1"].includes(parsed.hostname); if (parsed.protocol !== "https:" && !(process.env.NODE_ENV === "development" && local)) throw appError("INVALID_SERVICE_URL", "A URL do app Configurações deve usar HTTPS.", 503); return parsed.toString().replace(/\/$/, ""); }
-function runtimeRequirements(identityReady = false) { return [
-  { name: "OMIE_CONFIG_SERVICE_URL", configured: Boolean(process.env.OMIE_CONFIG_SERVICE_URL), detail: "Localiza o backend do app Configurações." },
-  { name: "OMIE_CONFIG_RESOLVER_SHARED_SECRET", configured: Boolean(process.env.OMIE_CONFIG_RESOLVER_SHARED_SECRET), detail: "Assina a resolução efêmera de conexão." },
-  { name: "OMIE_CONFIG_APP_INSTANCE_ID", configured: Boolean(process.env.OMIE_CONFIG_APP_INSTANCE_ID), detail: "Seleciona a instância autorizada de Configurações." },
+function bindingProtectionReady() { try { resolveBindingKey(); return true; } catch { return false; } }
+function runtimeRequirements(identityReady = false, bindingReady = false) { return [
+  { name: "Vínculo com Configurações Omie", configured: bindingReady, detail: "Autoriza esta base no módulo Configurações sem variáveis manuais." },
+  { name: "Proteção do vínculo OonCore", configured: bindingProtectionReady(), detail: "Cifra o segredo técnico deste módulo em repouso." },
   { name: "Identidade operacional OonCore", configured: identityReady, detail: "Isola o deployment/instância ativado sem configuração manual." },
   { name: "APP_ENVIRONMENT", configured: Boolean(process.env.APP_ENVIRONMENT), detail: "Isola o ambiente de execução." },
 ]; }
@@ -29,9 +31,14 @@ function normalizeEntities(values) { const selected = [...new Set((Array.isArray
 function canRun(accessContext, entity) { const permissions = accessContext.permissions || []; return permissions.includes("*") || permissions.includes(ENTITY_DEFINITIONS[entity].permission); }
 
 async function resolveExecutionContext({ scope, connectionId, operationId, correlationId }) {
-  const body = { tenantId: scope.tenantId, requesterAppInstanceId: scope.appInstanceId, configurationAppInstanceId: requiredText(process.env.OMIE_CONFIG_APP_INSTANCE_ID, "OMIE_CONFIG_APP_INSTANCE_ID", 160), environment: requiredText(process.env.OMIE_CONFIG_ENVIRONMENT || scope.environment, "OMIE_CONFIG_ENVIRONMENT", 80), actorId: scope.actorId, connectionId, operationId, correlationId };
+  const binding = await resolverBindingFor(scope, connectionId);
+  const providerUrl = binding?.providerUrl || normalizedServiceUrl();
+  const providerAppInstanceId = binding?.providerAppInstanceId || requiredText(process.env.OMIE_CONFIG_APP_INSTANCE_ID, "OMIE_CONFIG_APP_INSTANCE_ID", 160);
+  const providerEnvironment = binding ? scope.environment : requiredText(process.env.OMIE_CONFIG_ENVIRONMENT || scope.environment, "OMIE_CONFIG_ENVIRONMENT", 80);
+  const signingSecret = binding?.secret || process.env.OMIE_CONFIG_RESOLVER_SHARED_SECRET;
+  const body = { tenantId: scope.tenantId, requesterAppInstanceId: scope.appInstanceId, configurationAppInstanceId: providerAppInstanceId, environment: providerEnvironment, actorId: scope.actorId, connectionId, operationId, correlationId };
   const timestamp = Date.now(); const clientId = "cadastros-omie";
-  return postJson(`${normalizedServiceUrl()}/api/omie-config/execution-context`, { body, timeoutMs: 10000, headers: { "x-omie-config-client": clientId, "x-omie-config-timestamp": String(timestamp), "x-omie-config-signature": signExecutionRequest(process.env.OMIE_CONFIG_RESOLVER_SHARED_SECRET, body, timestamp, clientId) } });
+  return postJson(`${providerUrl}/api/omie-config/execution-context`, { body, timeoutMs: 10000, headers: { "x-omie-config-client": clientId, "x-omie-config-grant": binding?.grantId || "", "x-omie-config-timestamp": String(timestamp), "x-omie-config-signature": signExecutionRequest(signingSecret, body, timestamp, clientId) } });
 }
 function adapterFor(scope, connectionId, correlationId) { return createRegistrationAdapter({ resolveExecutionContext: ({ operationId }) => resolveExecutionContext({ scope, connectionId, operationId, correlationId }), transport: omieHttpTransport }); }
 function records(payload, definition) { for (const key of definition.arrayKeys) if (Array.isArray(payload?.[key])) return payload[key]; return []; }
@@ -41,9 +48,9 @@ function listPayload(page, pageSize) { return { pagina: page, registros_por_pagi
 
 async function listConnections(accessContext) {
   const scope = await runtimeScope(accessContext); const rows = await mongo("RegistrationBootstrapState").find(scopeFilter(scope)).sort({ connectionId: 1 }).lean();
-  return { items: rows.map(row => ({ connectionId: row.connectionId, entities: row.entities, sampleSize: row.sampleSize, lastSyncAt: row.lastTestAt, lastSyncOutcome: row.lastTestOutcome, lastSyncSummary: row.lastTestSummary })) };
+  return { items: await Promise.all(rows.map(async row => ({ connectionId: row.connectionId, entities: row.entities, sampleSize: row.sampleSize, bindingConfigured: await hasResolverBinding(scope, row.connectionId), lastSyncAt: row.lastTestAt, lastSyncOutcome: row.lastTestOutcome, lastCorrelationId: row.lastCorrelationId, lastSyncSummary: row.lastTestSummary, lastResults: row.lastResults || [] }))) };
 }
-async function describeBootstrap(accessContext) { let identityReady = false; let items = []; try { items = (await listConnections(accessContext)).items; identityReady = true; } catch { /* runtime prerequisites are reported below */ } const requirements = runtimeRequirements(identityReady); return { requirements, ready: requirements.every(item => item.configured) && items.some(item => item.lastSyncOutcome === "success"), configurations: items, configuration: items[0] || null, availableEntities: Object.entries(ENTITY_DEFINITIONS).map(([id, definition]) => ({ id, label: definition.label })) }; }
+async function describeBootstrap(accessContext) { let identityReady = false; let items = []; try { items = (await listConnections(accessContext)).items; identityReady = true; } catch { /* runtime prerequisites are reported below */ } const requirements = runtimeRequirements(identityReady, items.some(item => item.bindingConfigured)); return { requirements, ready: requirements.every(item => item.configured) && items.some(item => item.lastSyncOutcome === "success"), configurations: items, configuration: items[0] || null, availableEntities: Object.entries(ENTITY_DEFINITIONS).map(([id, definition]) => ({ id, label: definition.label })) }; }
 async function saveBootstrap(accessContext, input = {}) { const scope = await runtimeScope(accessContext); const connectionId = requiredText(input.connectionId, "connectionId", 160); const entities = normalizeEntities(input.entities); const sampleSize = Number(input.sampleSize || 50); if (!Number.isInteger(sampleSize) || sampleSize < 1 || sampleSize > 100) throw appError("INVALID_SAMPLE_SIZE", "O lote deve conter de 1 a 100 registros."); await mongo("RegistrationBootstrapState").findOneAndUpdate({ ...scopeFilter(scope), connectionId }, { $set: { entities, sampleSize }, $setOnInsert: { lastTestOutcome: "not_tested" } }, { upsert: true, new: true, runValidators: true }); return describeBootstrap(accessContext); }
 
 async function syncConnection(accessContext, connectionIdInput) {
@@ -58,7 +65,7 @@ async function syncConnection(accessContext, connectionIdInput) {
     } catch (error) { result.push({ entity, ok: false, count, code: error.code || "SYNC_FAILED" }); }
   }
   const succeeded = result.filter(item => item.ok).length; const outcome = succeeded === result.length ? "success" : succeeded ? "partial" : "failure"; const summary = `${succeeded}/${result.length} tipos sincronizados • ${result.reduce((sum, item) => sum + item.count, 0)} registros`;
-  await mongo("RegistrationBootstrapState").updateOne({ ...scopeFilter(scope), connectionId }, { $set: { lastTestAt: new Date(), lastTestOutcome: outcome, lastCorrelationId: correlationId, lastTestSummary: summary } });
+  await mongo("RegistrationBootstrapState").updateOne({ ...scopeFilter(scope), connectionId }, { $set: { lastTestAt: new Date(), lastTestOutcome: outcome, lastCorrelationId: correlationId, lastTestSummary: summary, lastResults: result } });
   return { ok: outcome === "success", outcome, summary, correlationId, results: result };
 }
 async function testSynchronization(accessContext, input = {}) { return syncConnection(accessContext, input.connectionId || (await listConnections(accessContext)).items[0]?.connectionId); }
@@ -66,7 +73,7 @@ async function testSynchronization(accessContext, input = {}) { return syncConne
 async function listEntities(accessContext, entity, query = {}) {
   const definition = ENTITY_DEFINITIONS[entity]; if (!definition) throw appError("UNKNOWN_ENTITY", "Tipo de cadastro inválido."); const scope = await runtimeScope(accessContext); const connectionId = requiredText(query.connectionId, "connectionId", 160); const page = Math.max(1, Number(query.page || 1)); const pageSize = Math.min(100, Math.max(1, Number(query.pageSize || 50))); const filter = { tenantId: scope.tenantId, omieConnectionId: connectionId }; const term = String(query.query || "").trim(); if (term) filter.$or = ["legalName", "tradeName", "documentMasked", "email", "name", "description"].map(field => ({ [field]: { $regex: term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" } })); const model = mongo(definition.model); const [items, total] = await Promise.all([model.find(filter).sort({ legalName: 1, name: 1, description: 1 }).skip((page - 1) * pageSize).limit(pageSize).lean(), model.countDocuments(filter)]); return { items, total, page, pageSize };
 }
-async function overview(accessContext) { const scope = await runtimeScope(accessContext); const totals = {}; for (const [entity, definition] of Object.entries(ENTITY_DEFINITIONS)) totals[entity] = await mongo(definition.model).countDocuments({ tenantId: scope.tenantId }); totals.errors = 0; return { totals, connections: (await listConnections(accessContext)).items, recentErrors: [] }; }
+async function overview(accessContext) { const scope = await runtimeScope(accessContext); const totals = {}; for (const [entity, definition] of Object.entries(ENTITY_DEFINITIONS)) totals[entity] = await mongo(definition.model).countDocuments({ tenantId: scope.tenantId }); const connections = (await listConnections(accessContext)).items; const recentErrors = connections.flatMap(row => (row.lastResults || []).filter(item => !item.ok).map(item => ({ entity: item.entity, name: ENTITY_DEFINITIONS[item.entity]?.label || item.entity, connectionId: row.connectionId, code: item.code, correlationId: row.lastCorrelationId }))); totals.errors = recentErrors.length; return { totals, connections, recentErrors }; }
 
 async function executeIdempotent(accessContext, input, idempotencyKey, operationId, providerPayload, mapper, modelName) {
   const scope = await runtimeScope(accessContext); const connectionId = requiredText(input.connectionId, "connectionId", 160); const key = requiredText(idempotencyKey, "Idempotency-Key", 160); const Command = mongo("RegistrationCommand"); const filter = { ...scopeFilter(scope), connectionId, idempotencyKey: key }; const previous = await Command.findOne(filter).lean(); if (previous?.outcome === "success") return previous.response; if (previous?.outcome === "processing") throw appError("COMMAND_IN_PROGRESS", "Esta operação já está em processamento.", 409); await Command.findOneAndUpdate(filter, { $set: { operationId, outcome: "processing" } }, { upsert: true }); const correlationId = `cad_cmd_${crypto.randomUUID()}`;

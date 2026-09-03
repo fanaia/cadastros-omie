@@ -15,6 +15,7 @@ const state = defineModel({
     lastTestOutcome: { type: String, enum: ["not_tested", "success", "partial", "failure"], default: "not_tested" },
     lastCorrelationId: { type: String, trim: true },
     lastTestSummary: { type: String, trim: true },
+    lastResults: { type: [Object], default: [] },
   },
 });
 

@@ -1,5 +1,6 @@
 const { defineRoutes } = require("@oondemand/oon-core-back");
 const service = require("../services/bootstrapService");
+const resolverBindings = require("../services/resolverBindingService");
 
 const READ_PERMISSIONS = [
   "cadastros.partner.read.connection", "cadastros.category.read.connection",
@@ -29,6 +30,15 @@ defineRoutes("/cadastros", (router) => {
   }));
   router.private.get("/connections", { permission: READ_PERMISSIONS }, handle(async (req, res) => {
     res.json(await service.listConnections(req.accessContext));
+  }));
+  router.private.get("/resolver-bindings", { permission: READ_PERMISSIONS }, handle(async (req, res) => {
+    res.json(await resolverBindings.listResolverBindings(req.accessContext));
+  }));
+  router.private.put("/resolver-bindings", {
+    permission: SYNC_PERMISSIONS,
+    audit: { entidade: "OmieResolverBinding", acao: "configure" },
+  }, handle(async (req, res) => {
+    res.json(await resolverBindings.saveResolverBinding(req.accessContext, req.body));
   }));
   router.private.get("/entities/:entity", { permission: READ_PERMISSIONS }, handle(async (req, res) => {
     res.json(await service.listEntities(req.accessContext, req.params.entity, req.query));
@@ -64,6 +74,6 @@ defineRoutes("/cadastros", (router) => {
     permission: SYNC_PERMISSIONS,
     audit: { entidade: "RegistrationSync", acao: "run" },
   }, handle(async (req, res) => {
-    res.status(202).json(await service.syncConnection(req.accessContext, req.body.connectionId));
+    res.json(await service.syncConnection(req.accessContext, req.body.connectionId));
   }));
 });
