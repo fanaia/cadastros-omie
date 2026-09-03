@@ -14,11 +14,15 @@
 - Completar o adapter local de listagem/consulta, paginação, checkpoint e reconciliação.
 - Compound indexes/migration e tickets de falha.
 
+Entregue parcialmente na versão 0.5.0: vínculo protegido, paginação, lock por base, histórico idempotente e reprocessamento seletivo. Checkpoint retomável e DLQ permanecem pendentes.
+
 ## Incremento 3 — Mutações idempotentes
 
 - Criar/alterar por entidade, começando por cliente/fornecedor e projeto.
 - Reconciliação pós-timeout, auditoria e UI de conflito.
 - Homologação em múltiplas bases.
+
+O histórico e a auditoria de comandos de sincronização foram antecipados para a versão 0.5.0. A resolução de conflitos registro a registro continua em incremento próprio.
 
 ## Incremento 4 — Pickers e anexos
 
