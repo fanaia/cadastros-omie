@@ -43,7 +43,7 @@ As projeções estão modeladas, mas a UI atual oferece listas técnicas semelha
 - `Analisar sincronização`: fica oculta quando o item está sincronizado e abre diretamente a situação técnica.
 - Todos os tipos recebem modal com resumo, dados funcionais, origem e sincronização.
 
-Comandos reais de sincronizar, reprocessar, reconciliar conflito, criar ou alterar no Omie serão adicionados somente com endpoints protegidos, idempotência e isolamento multibase. Não haverá ação fictícia na UI.
+Os comandos reais **Sincronizar tudo** e **Reprocessar falhas** usam endpoints protegidos, idempotência, lock por base e isolamento multibase. O histórico mostra gatilho, horário, resultado e protocolo. A reconciliação de conflitos registro a registro continuará oculta até possuir contrato próprio; não haverá ação fictícia na UI.
 
 ## Critérios de aceite
 
