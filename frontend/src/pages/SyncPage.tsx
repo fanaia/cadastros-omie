@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useOonApi } from "@oondemand/oon-core-front/hooks";
 import { Badge, Button, Card, Empty, Field, Notice, Page, errorMessage, toneFor } from "../components/Ui";
-import type { ConnectionConfig, SyncRun } from "../types";
+import type { ConnectionConfig, SyncRun, SyncRunHistory } from "../types";
 
 const ENTITIES = [
   { id: "partners", label: "Clientes e fornecedores" },
@@ -18,6 +18,7 @@ const OUTCOME_LABELS: Record<string, string> = {
 type Bootstrap = {
   requirements: Array<{ name: string; configured: boolean; detail: string }>;
   configurations: ConnectionConfig[];
+  recentRuns: SyncRunHistory[];
 };
 
 export function SyncPage() {
@@ -62,21 +63,37 @@ export function SyncPage() {
     setBusy(id);
     setNotice(null);
     try {
-      const result = (await http.post<SyncRun>("/cadastros/sync/run", { connectionId: id })).data;
+      const result = (await http.post<SyncRun>("/cadastros/sync/run", { connectionId: id }, { headers: { "Idempotency-Key": crypto.randomUUID() } })).data;
       await load();
-      const failures = result.results.filter(item => !item.ok);
-      const detail = failures.length
-        ? " Falhas: " + failures.map(item => item.entity + " (" + (item.code || "SYNC_FAILED") + ")").join(", ") + "."
-        : "";
-      setNotice({
-        tone: result.outcome === "success" ? "success" : result.outcome === "partial" ? "info" : "error",
-        text: result.summary + "." + detail + " Protocolo " + result.correlationId + ".",
-      });
+      showResult(result);
     } catch (reason) {
       setNotice({ tone: "error", text: errorMessage(reason) });
     } finally {
       setBusy("");
     }
+  }
+  async function retry(id: string) {
+    setBusy(`retry:${id}`);
+    setNotice(null);
+    try {
+      const result = (await http.post<SyncRun>("/cadastros/sync/retry", { connectionId: id }, { headers: { "Idempotency-Key": crypto.randomUUID() } })).data;
+      await load();
+      showResult(result);
+    } catch (reason) {
+      setNotice({ tone: "error", text: errorMessage(reason) });
+    } finally {
+      setBusy("");
+    }
+  }
+  function showResult(result: SyncRun) {
+    const failures = result.results.filter(item => !item.ok);
+    const detail = failures.length
+      ? " Falhas: " + failures.map(item => item.entity + " (" + (item.code || "SYNC_FAILED") + ")").join(", ") + "."
+      : "";
+    setNotice({
+      tone: result.outcome === "success" ? "success" : result.outcome === "partial" ? "info" : "error",
+      text: result.summary + "." + detail + " Protocolo " + result.correlationId + ".",
+    });
   }
 
   return <Page
@@ -104,7 +121,10 @@ export function SyncPage() {
                   <strong>{row.lastSyncAt ? new Date(row.lastSyncAt).toLocaleString("pt-BR") : "Nunca"}</strong>
                   {row.lastCorrelationId && <small>Protocolo {row.lastCorrelationId}</small>}
                 </div>
-                <Button disabled={!row.bindingConfigured} busy={busy === row.connectionId} onClick={() => run(row.connectionId)}>Sincronizar</Button>
+                <div className="oon-actions">
+                  {(row.lastResults || []).some(item => !item.ok) && <Button variant="secondary" disabled={!row.bindingConfigured || row.syncRunning} busy={busy === `retry:${row.connectionId}`} onClick={() => retry(row.connectionId)}>Reprocessar falhas</Button>}
+                  <Button disabled={!row.bindingConfigured || row.syncRunning} busy={busy === row.connectionId} onClick={() => run(row.connectionId)}>{row.syncRunning ? "Em andamento" : "Sincronizar tudo"}</Button>
+                </div>
               </article>;
             })}</div>}
       </Card>
@@ -129,6 +149,16 @@ export function SyncPage() {
         <strong>{item.name}</strong>
         <p>{item.detail}</p>
       </article>)}</div>
+    </Card>
+    <Card title="Execuções recentes" description="Histórico idempotente das sincronizações e reprocessamentos.">
+      {!data?.recentRuns?.length
+        ? <Empty title="Nenhuma execução registrada" description="O histórico será criado na próxima sincronização." />
+        : <div className="oon-list">{data.recentRuns.map(item => <article className="oon-run-item" key={item.runId}>
+            <div><strong>{item.connectionId}</strong><small>{item.trigger === "retry" ? "Reprocessamento de falhas" : item.trigger === "test" ? "Teste" : "Sincronização completa"}</small></div>
+            <Badge tone={toneFor(item.outcome || item.status)}>{item.status === "processing" ? "Em andamento" : OUTCOME_LABELS[item.outcome || "failure"] || "Falhou"}</Badge>
+            <div><strong>{item.summary || item.entities.join(" • ")}</strong><small>{new Date(item.startedAt).toLocaleString("pt-BR")}</small></div>
+            <small>Protocolo {item.correlationId || item.runId}</small>
+          </article>)}</div>}
     </Card>
   </Page>;
 }
