@@ -14,6 +14,7 @@ const ENTITY_DEFINITIONS = Object.freeze({
   departments: { label: "Departamentos", operationId: "department.list", permission: "cadastros.department.sync.connection", model: "DepartmentProjection", arrayKeys: ["departamentos"], mapper: toDepartmentProjection },
   projects: { label: "Projetos", operationId: "project.list", permission: "cadastros.project.sync.connection", model: "ProjectProjection", arrayKeys: ["cadastro", "projetos"], mapper: toProjectProjection },
 });
+const SYNC_LEASE_MS = 5 * 60 * 1000;
 
 function appError(code, message, statusCode = 400) { const error = new Error(message); error.code = code; error.statusCode = statusCode; return error; }
 function requiredText(value, field, maxLength = 200) { const text = String(value || "").trim(); if (!text) throw appError("INVALID_INPUT", `${field} é obrigatório.`); if (text.length > maxLength) throw appError("INVALID_INPUT", `${field} excede o limite permitido.`); return text; }
@@ -29,6 +30,32 @@ function runtimeRequirements(identityReady = false, bindingReady = false) { retu
 ]; }
 function normalizeEntities(values) { const selected = [...new Set((Array.isArray(values) ? values : []).map(String))]; if (!selected.length || selected.some(value => !ENTITY_DEFINITIONS[value])) throw appError("INVALID_ENTITIES", "Selecione ao menos um cadastro válido."); return selected; }
 function canRun(accessContext, entity) { const permissions = accessContext.permissions || []; return permissions.includes("*") || permissions.includes(ENTITY_DEFINITIONS[entity].permission); }
+function normalizeEntitySelection(configured, requested) {
+  const selected = requested === undefined ? [...configured] : normalizeEntities(requested);
+  if (selected.some(entity => !configured.includes(entity))) {
+    throw appError("ENTITY_NOT_CONFIGURED", "A seleção contém um cadastro não configurado para esta base.", 409);
+  }
+  return selected;
+}
+function retryableEntities(results = []) {
+  return [...new Set(results.filter(item => item && !item.ok && ENTITY_DEFINITIONS[item.entity]).map(item => item.entity))];
+}
+function outcomeForResults(results) {
+  const succeeded = results.filter(item => item.ok).length;
+  return succeeded === results.length && results.length ? "success" : succeeded ? "partial" : "failure";
+}
+function summarizeResults(results) {
+  const succeeded = results.filter(item => item.ok).length;
+  return {
+    outcome: outcomeForResults(results),
+    summary: `${succeeded}/${results.length} tipos sincronizados • ${results.reduce((sum, item) => sum + Number(item.count || 0), 0)} registros`,
+  };
+}
+function mergeEntityResults(configured, previous = [], current = []) {
+  const byEntity = new Map(previous.map(item => [item.entity, item]));
+  for (const item of current) byEntity.set(item.entity, item);
+  return configured.map(entity => byEntity.get(entity) || { entity, ok: false, count: 0, code: "NOT_RUN" });
+}
 
 async function resolveExecutionContext({ scope, connectionId, operationId, correlationId }) {
   const binding = await resolverBindingFor(scope, connectionId);
@@ -48,27 +75,109 @@ function listPayload(page, pageSize) { return { pagina: page, registros_por_pagi
 
 async function listConnections(accessContext) {
   const scope = await runtimeScope(accessContext); const rows = await mongo("RegistrationBootstrapState").find(scopeFilter(scope)).sort({ connectionId: 1 }).lean();
-  return { items: await Promise.all(rows.map(async row => ({ connectionId: row.connectionId, entities: row.entities, sampleSize: row.sampleSize, bindingConfigured: await hasResolverBinding(scope, row.connectionId), lastSyncAt: row.lastTestAt, lastSyncOutcome: row.lastTestOutcome, lastCorrelationId: row.lastCorrelationId, lastSyncSummary: row.lastTestSummary, lastResults: row.lastResults || [] }))) };
+  const now = Date.now();
+  return { items: await Promise.all(rows.map(async row => ({ connectionId: row.connectionId, entities: row.entities, sampleSize: row.sampleSize, bindingConfigured: await hasResolverBinding(scope, row.connectionId), syncRunning: row.syncStatus === "running" && new Date(row.syncLeaseExpiresAt || 0).getTime() > now, lastSyncAt: row.lastTestAt, lastSyncOutcome: row.lastTestOutcome, lastCorrelationId: row.lastCorrelationId, lastSyncSummary: row.lastTestSummary, lastResults: row.lastResults || [] }))) };
 }
-async function describeBootstrap(accessContext) { let identityReady = false; let items = []; try { items = (await listConnections(accessContext)).items; identityReady = true; } catch { /* runtime prerequisites are reported below */ } const requirements = runtimeRequirements(identityReady, items.some(item => item.bindingConfigured)); return { requirements, ready: requirements.every(item => item.configured) && items.some(item => item.lastSyncOutcome === "success"), configurations: items, configuration: items[0] || null, availableEntities: Object.entries(ENTITY_DEFINITIONS).map(([id, definition]) => ({ id, label: definition.label })) }; }
+function serializeSyncRun(row) {
+  return { runId: row.runId, correlationId: row.correlationId, connectionId: row.connectionId, trigger: row.trigger, entities: row.entities, status: row.status, outcome: row.outcome, summary: row.summary, results: row.results || [], errorCode: row.errorCode, startedAt: row.startedAt, completedAt: row.completedAt };
+}
+async function recentSyncRuns(scope, limit = 12) {
+  const rows = await mongo("RegistrationSyncRun").find(scopeFilter(scope)).sort({ startedAt: -1 }).limit(limit).lean();
+  return rows.map(serializeSyncRun);
+}
+async function describeBootstrap(accessContext) {
+  let identityReady = false; let items = []; let recentRuns = [];
+  try { const scope = await runtimeScope(accessContext); [items, recentRuns] = await Promise.all([(await listConnections(accessContext)).items, recentSyncRuns(scope)]); identityReady = true; } catch { /* runtime prerequisites are reported below */ }
+  const requirements = runtimeRequirements(identityReady, items.some(item => item.bindingConfigured));
+  return { requirements, ready: requirements.every(item => item.configured) && items.some(item => item.lastSyncOutcome === "success"), configurations: items, configuration: items[0] || null, recentRuns, availableEntities: Object.entries(ENTITY_DEFINITIONS).map(([id, definition]) => ({ id, label: definition.label })) };
+}
 async function saveBootstrap(accessContext, input = {}) { const scope = await runtimeScope(accessContext); const connectionId = requiredText(input.connectionId, "connectionId", 160); const entities = normalizeEntities(input.entities); const sampleSize = Number(input.sampleSize || 50); if (!Number.isInteger(sampleSize) || sampleSize < 1 || sampleSize > 100) throw appError("INVALID_SAMPLE_SIZE", "O lote deve conter de 1 a 100 registros."); await mongo("RegistrationBootstrapState").findOneAndUpdate({ ...scopeFilter(scope), connectionId }, { $set: { entities, sampleSize }, $setOnInsert: { lastTestOutcome: "not_tested" } }, { upsert: true, new: true, runValidators: true }); return describeBootstrap(accessContext); }
 
-async function syncConnection(accessContext, connectionIdInput) {
-  const scope = await runtimeScope(accessContext); const connectionId = requiredText(connectionIdInput, "connectionId", 160); const state = await mongo("RegistrationBootstrapState").findOne({ ...scopeFilter(scope), connectionId }); if (!state) throw appError("BOOTSTRAP_REQUIRED", "Configure esta base antes de sincronizar.", 409);
-  const correlationId = `cad_sync_${crypto.randomUUID()}`; const result = [];
-  for (const entity of state.entities) {
-    const definition = ENTITY_DEFINITIONS[entity]; if (!canRun(accessContext, entity)) { result.push({ entity, ok: false, code: "PERMISSION_DENIED", count: 0 }); continue; }
-    let page = 1; let pages = 1; let count = 0;
-    try {
-      do { const payload = await adapterFor(scope, connectionId, correlationId).execute({ context: { ...scope, correlationId }, omieConnectionId: connectionId, operationId: definition.operationId, payload: listPayload(page, state.sampleSize) }); pages = Math.min(totalPages(payload), 1000); for (const source of records(payload, definition)) { const projection = definition.mapper(source, connectionId); if (!projection.externalId || !(projection.legalName || projection.name || projection.description)) continue; await mongo(definition.model).findOneAndUpdate({ tenantId: scope.tenantId, omieConnectionId: connectionId, externalId: String(projection.externalId) }, { $set: projection }, { upsert: true, runValidators: true }); count += 1; } page += 1; } while (page <= pages);
-      result.push({ entity, ok: true, count });
-    } catch (error) { result.push({ entity, ok: false, count, code: error.code || "SYNC_FAILED" }); }
-  }
-  const succeeded = result.filter(item => item.ok).length; const outcome = succeeded === result.length ? "success" : succeeded ? "partial" : "failure"; const summary = `${succeeded}/${result.length} tipos sincronizados • ${result.reduce((sum, item) => sum + item.count, 0)} registros`;
-  await mongo("RegistrationBootstrapState").updateOne({ ...scopeFilter(scope), connectionId }, { $set: { lastTestAt: new Date(), lastTestOutcome: outcome, lastCorrelationId: correlationId, lastTestSummary: summary, lastResults: result } });
-  return { ok: outcome === "success", outcome, summary, correlationId, results: result };
+async function acquireSyncLease(scope, connectionId) {
+  const now = new Date(); const leaseId = `lease_${crypto.randomUUID()}`;
+  const state = await mongo("RegistrationBootstrapState").findOneAndUpdate(
+    { ...scopeFilter(scope), connectionId, $or: [{ syncStatus: { $ne: "running" } }, { syncLeaseExpiresAt: { $lte: now } }, { syncLeaseExpiresAt: null }] },
+    { $set: { syncStatus: "running", syncLeaseId: leaseId, syncLeaseExpiresAt: new Date(now.getTime() + SYNC_LEASE_MS) } },
+    { new: true },
+  );
+  if (!state) throw appError("SYNC_IN_PROGRESS", "Já existe uma sincronização em andamento para esta base.", 409);
+  return { leaseId, state };
 }
-async function testSynchronization(accessContext, input = {}) { return syncConnection(accessContext, input.connectionId || (await listConnections(accessContext)).items[0]?.connectionId); }
+async function renewSyncLease(scope, connectionId, leaseId) {
+  const result = await mongo("RegistrationBootstrapState").updateOne(
+    { ...scopeFilter(scope), connectionId, syncStatus: "running", syncLeaseId: leaseId },
+    { $set: { syncLeaseExpiresAt: new Date(Date.now() + SYNC_LEASE_MS) } },
+  );
+  if (!result.matchedCount) throw appError("SYNC_LEASE_LOST", "A exclusividade da sincronização expirou; a execução foi interrompida.", 409);
+}
+async function releaseSyncLease(scope, connectionId, leaseId) {
+  await mongo("RegistrationBootstrapState").updateOne(
+    { ...scopeFilter(scope), connectionId, syncLeaseId: leaseId },
+    { $set: { syncStatus: "idle" }, $unset: { syncLeaseId: "", syncLeaseExpiresAt: "" } },
+  );
+}
+async function executeSyncEntities({ accessContext, scope, connectionId, state, entities, correlationId, leaseId }) {
+  const result = [];
+  for (const entity of entities) {
+    const definition = ENTITY_DEFINITIONS[entity]; let page = 1; let pages = 1; let count = 0;
+    try {
+      do {
+        await renewSyncLease(scope, connectionId, leaseId);
+        const payload = await adapterFor(scope, connectionId, correlationId).execute({ context: { ...scope, correlationId }, omieConnectionId: connectionId, operationId: definition.operationId, payload: listPayload(page, state.sampleSize) });
+        pages = Math.min(totalPages(payload), 1000);
+        for (const source of records(payload, definition)) {
+          const projection = definition.mapper(source, connectionId);
+          if (!projection.externalId || !(projection.legalName || projection.name || projection.description)) continue;
+          await mongo(definition.model).findOneAndUpdate({ tenantId: scope.tenantId, omieConnectionId: connectionId, externalId: String(projection.externalId) }, { $set: projection }, { upsert: true, runValidators: true });
+          count += 1;
+        }
+        page += 1;
+      } while (page <= pages);
+      result.push({ entity, ok: true, count });
+    } catch (error) {
+      if (error.code === "SYNC_LEASE_LOST") throw error;
+      result.push({ entity, ok: false, count, code: error.code || "SYNC_FAILED" });
+    }
+  }
+  return result;
+}
+async function existingSyncResponse(scope, connectionId, idempotencyKey) {
+  const row = await mongo("RegistrationSyncRun").findOne({ ...scopeFilter(scope), connectionId, idempotencyKey }).lean();
+  if (!row) return null;
+  if (row.status === "completed" && row.response) return { ...row.response, idempotent: true };
+  if (row.status === "failed") throw appError("SYNC_KEY_ALREADY_FAILED", "Esta chave idempotente pertence a uma execução que falhou; gere uma nova chave.", 409);
+  throw appError("SYNC_ALREADY_REQUESTED", "Esta sincronização já foi solicitada e continua em processamento.", 409);
+}
+async function runSynchronization(accessContext, input = {}, idempotencyKey, trigger = "manual") {
+  const scope = await runtimeScope(accessContext); const connectionId = requiredText(input.connectionId, "connectionId", 160); const key = requiredText(idempotencyKey, "Idempotency-Key", 160);
+  const State = mongo("RegistrationBootstrapState"); const state = await State.findOne({ ...scopeFilter(scope), connectionId });
+  if (!state) throw appError("BOOTSTRAP_REQUIRED", "Configure esta base antes de sincronizar.", 409);
+  const previous = await existingSyncResponse(scope, connectionId, key); if (previous) return previous;
+  const entities = trigger === "retry" ? retryableEntities(state.lastResults) : normalizeEntitySelection(state.entities, input.entities);
+  if (!entities.length) throw appError("NO_FAILED_ENTITIES", "Não há falhas pendentes para reprocessar nesta base.", 409);
+  if (entities.some(entity => !canRun(accessContext, entity))) throw appError("PERMISSION_DENIED", "Você não possui permissão para sincronizar todos os cadastros selecionados.", 403);
+  const { leaseId } = await acquireSyncLease(scope, connectionId); const runId = `cad_run_${crypto.randomUUID()}`; const correlationId = `cad_sync_${crypto.randomUUID()}`; const Run = mongo("RegistrationSyncRun"); let runCreated = false;
+  try {
+    await Run.create({ ...scopeFilter(scope), connectionId, runId, idempotencyKey: key, trigger, correlationId, entities, requestedBy: scope.actorId, status: "processing", startedAt: new Date() });
+    runCreated = true;
+    const results = await executeSyncEntities({ accessContext, scope, connectionId, state, entities, correlationId, leaseId });
+    const attempt = summarizeResults(results); const aggregateResults = mergeEntityResults(state.entities, state.lastResults, results); const aggregate = summarizeResults(aggregateResults); const completedAt = new Date();
+    const response = { ok: attempt.outcome === "success", outcome: attempt.outcome, summary: attempt.summary, overallOutcome: aggregate.outcome, overallSummary: aggregate.summary, correlationId, runId, trigger, results, aggregateResults };
+    await Promise.all([
+      State.updateOne({ ...scopeFilter(scope), connectionId }, { $set: { lastTestAt: completedAt, lastTestOutcome: aggregate.outcome, lastCorrelationId: correlationId, lastTestSummary: aggregate.summary, lastResults: aggregateResults } }),
+      Run.updateOne({ ...scopeFilter(scope), connectionId, runId }, { $set: { status: "completed", outcome: attempt.outcome, summary: attempt.summary, results, response, completedAt } }),
+    ]);
+    return response;
+  } catch (error) {
+    if (error.code === 11000 && !runCreated) return existingSyncResponse(scope, connectionId, key);
+    await Run.updateOne({ ...scopeFilter(scope), connectionId, runId }, { $set: { status: "failed", errorCode: error.code || "SYNC_FAILED", completedAt: new Date() } });
+    throw error;
+  } finally { await releaseSyncLease(scope, connectionId, leaseId); }
+}
+async function syncConnection(accessContext, input = {}, idempotencyKey) { return runSynchronization(accessContext, typeof input === "string" ? { connectionId: input } : input, idempotencyKey, "manual"); }
+async function retryFailedSynchronization(accessContext, input = {}, idempotencyKey) { return runSynchronization(accessContext, input, idempotencyKey, "retry"); }
+async function testSynchronization(accessContext, input = {}, idempotencyKey) { return runSynchronization(accessContext, { ...input, connectionId: input.connectionId || (await listConnections(accessContext)).items[0]?.connectionId }, idempotencyKey || `test-${crypto.randomUUID()}`, "test"); }
+async function listSyncRuns(accessContext, query = {}) { const scope = await runtimeScope(accessContext); const connectionId = requiredText(query.connectionId, "connectionId", 160); const limit = Math.min(50, Math.max(1, Number(query.limit || 20))); const rows = await mongo("RegistrationSyncRun").find({ ...scopeFilter(scope), connectionId }).sort({ startedAt: -1 }).limit(limit).lean(); return { items: rows.map(serializeSyncRun) }; }
 
 async function listEntities(accessContext, entity, query = {}) {
   const definition = ENTITY_DEFINITIONS[entity]; if (!definition) throw appError("UNKNOWN_ENTITY", "Tipo de cadastro inválido."); const scope = await runtimeScope(accessContext); const connectionId = requiredText(query.connectionId, "connectionId", 160); const page = Math.max(1, Number(query.page || 1)); const pageSize = Math.min(100, Math.max(1, Number(query.pageSize || 50))); const filter = { tenantId: scope.tenantId, omieConnectionId: connectionId }; const term = String(query.query || "").trim(); if (term) filter.$or = ["legalName", "tradeName", "documentMasked", "email", "name", "description"].map(field => ({ [field]: { $regex: term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" } })); const model = mongo(definition.model); const [items, total] = await Promise.all([model.find(filter).sort({ legalName: 1, name: 1, description: 1 }).skip((page - 1) * pageSize).limit(pageSize).lean(), model.countDocuments(filter)]); return { items, total, page, pageSize };
@@ -82,4 +191,4 @@ async function executeIdempotent(accessContext, input, idempotencyKey, operation
 async function upsertPartner(accessContext, input, key) { const integrationCode = input.integrationCode || `oon-${crypto.randomUUID()}`; const payload = { codigo_cliente_integracao: integrationCode, razao_social: requiredText(input.legalName, "legalName", 60), nome_fantasia: String(input.tradeName || "").trim(), cnpj_cpf: String(input.document || "").replace(/\D/g, ""), email: String(input.email || "").trim(), telefone1_numero: String(input.phone || "").trim(), cliente: input.isCustomer === false ? "N" : "S", fornecedor: input.isSupplier ? "S" : "N" }; return executeIdempotent(accessContext, input, key, "partner.upsert", payload, toPartnerProjection, "PartnerProjection"); }
 async function upsertProject(accessContext, input, key) { const payload = { codInt: input.integrationCode || `oon-${crypto.randomUUID()}`, nome: requiredText(input.name, "name", 70), inativo: input.active === false ? "S" : "N" }; return executeIdempotent(accessContext, input, key, "project.upsert", payload, toProjectProjection, "ProjectProjection"); }
 
-module.exports = { ENTITY_DEFINITIONS, countProviderRecords, describeBootstrap, listConnections, listEntities, overview, runtimeRequirements, saveBootstrap, syncConnection, testSynchronization, upsertPartner, upsertProject };
+module.exports = { ENTITY_DEFINITIONS, countProviderRecords, describeBootstrap, listConnections, listEntities, listSyncRuns, mergeEntityResults, normalizeEntitySelection, outcomeForResults, overview, retryableEntities, retryFailedSynchronization, runtimeRequirements, saveBootstrap, summarizeResults, syncConnection, testSynchronization, upsertPartner, upsertProject };
