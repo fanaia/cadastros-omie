@@ -1,6 +1,6 @@
 {
   "name": "cadastros-omie",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "private": true,
   "description": "Clientes, fornecedores, projetos, categorias, departamentos, anexos e pickers multibase Omie",
   "scripts": {

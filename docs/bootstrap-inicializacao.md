@@ -6,31 +6,32 @@ Entregar o primeiro uso do app **Cadastros Omie** exclusivamente neste repositó
 
 ## Jornada do usuário
 
-1. A página **Inicialização** verifica as variáveis de implantação e a disponibilidade do serviço de Configurações.
-2. O administrador informa o identificador da conexão autorizada, escolhe os cadastros que deseja validar e define o tamanho da amostra.
-3. O backend persiste somente conexão, escopo e parâmetros operacionais; nenhuma credencial Omie é aceita pela rota.
-4. O usuário executa **Testar sincronização**.
-5. O app consulta até uma página de cada entidade selecionada, sem gravar projeções, e mostra contagens, duração, protocolo e erros sanitizados.
-6. Após todos os testes selecionados passarem, o bootstrap fica pronto para o incremento posterior de sincronização efetiva.
+1. Em **Configurações Omie > Políticas**, o administrador habilita Cadastros para a base.
+2. Em **Configurações Omie > Consumidores**, gera um código de vínculo de exibição única.
+3. Em **Cadastros Omie > Sincronização**, cola o código, escolhe as entidades e define o tamanho de página.
+4. O backend valida módulo, ambiente, conexão e URL HTTPS; cifra o segredo do grant com a proteção fornecida pelo OonCore.
+5. O usuário executa **Sincronizar**. O app percorre as páginas, atualiza as projeções e registra resultado por entidade, contagem, código e protocolo.
+6. Rotacionar ou revogar o grant em Configurações invalida o acesso anterior.
 
 ## Variáveis de implantação
 
 | Variável | Obrigatória | Uso | Exposição na UI |
 |---|---:|---|---|
-| `OMIE_CONFIG_SERVICE_URL` | sim | URL HTTPS do app Configurações | URL pública normalizada |
-| `OMIE_CONFIG_RESOLVER_SHARED_SECRET` | sim | Assina a resolução backend-to-backend | somente `configurada`/`ausente` |
-| `OMIE_CONFIG_APP_INSTANCE_ID` | sim | Seleciona a instância licenciada do app Configurações | identificador operacional |
+| Código de vínculo | sim por base | URL, instância, ambiente, grant e segredo emitidos por Configurações | segredo somente na gravação |
+| `INSTANCE_CREDENTIAL_ENCRYPTION_KEY` | automática | Cifra o segredo técnico no banco deste app | somente `configurada`/`ausente` |
+| `OMIE_CONFIG_SERVICE_URL` e variáveis relacionadas | não | Compatibilidade local/legada | somente diagnóstico |
 | `APP_INSTANCE_ID` | não (legado) | Fallback para runtimes antigos; o OonCore fornece a identidade do deployment/instância | identificador operacional |
 | `APP_ENVIRONMENT` | sim | Isolamento entre ambientes | nome do ambiente |
 
-O navegador não configura nem recebe o segredo compartilhado. Quando ele está ausente, o teste falha fechado e a página informa qual requisito de implantação deve ser corrigido.
+O navegador recebe o segredo apenas no transporte autenticado do cadastro inicial e o backend nunca o devolve. Chamadas posteriores usam HMAC, timestamp curto e grant por base; Configurações mantém nonce de uso único contra replay.
 
 ## Contratos do app
 
 | Método | Rota | Permissão | Finalidade |
 |---|---|---|---|
 | `GET` | `/api/cadastros/bootstrap` | `cadastros.partner.read.connection` | Estado do primeiro uso e requisitos |
-| `PUT` | `/api/cadastros/bootstrap` | `cadastros.partner.sync.connection` | Salvar conexão, entidades e tamanho da amostra |
+| `PUT` | `/api/cadastros/resolver-bindings` | permissão de sync | Cadastrar/rotacionar o vínculo protegido |
+| `PUT` | `/api/cadastros/bootstrap` | `cadastros.partner.sync.connection` | Salvar conexão, entidades e tamanho da página |
 | `POST` | `/api/cadastros/sync/test` | permissão de sync por entidade | Executar teste read-only e multibase |
 
 ## Escopo do teste
@@ -44,7 +45,7 @@ Entidades disponíveis: clientes/fornecedores, categorias, departamentos e proje
 - A chamada ao app Configurações é assinada com HMAC, timestamp de curta duração e contexto completo.
 - Credenciais efêmeras existem apenas em memória durante a chamada e não aparecem na resposta do teste.
 - Erros são normalizados para código, mensagem segura e protocolo; payloads do provedor não são registrados.
-- Não há escrita em projeções nesta etapa. Sincronização efetiva, reprocessamento e conflitos continuam em sub-issues próprios.
+- O resultado efetivo por entidade é persistido sem payload Omie e exposto com protocolo sanitizado.
 
 ## Critérios de aceite
 
