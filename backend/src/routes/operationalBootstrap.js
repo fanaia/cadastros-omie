@@ -74,6 +74,15 @@ defineRoutes("/cadastros", (router) => {
     permission: SYNC_PERMISSIONS,
     audit: { entidade: "RegistrationSync", acao: "run" },
   }, handle(async (req, res) => {
-    res.json(await service.syncConnection(req.accessContext, req.body.connectionId));
+    res.json(await service.syncConnection(req.accessContext, req.body, req.get("Idempotency-Key")));
+  }));
+  router.private.post("/sync/retry", {
+    permission: SYNC_PERMISSIONS,
+    audit: { entidade: "RegistrationSync", acao: "retry-failures" },
+  }, handle(async (req, res) => {
+    res.json(await service.retryFailedSynchronization(req.accessContext, req.body, req.get("Idempotency-Key")));
+  }));
+  router.private.get("/sync/runs", { permission: READ_PERMISSIONS }, handle(async (req, res) => {
+    res.json(await service.listSyncRuns(req.accessContext, req.query));
   }));
 });

@@ -1,6 +1,7 @@
 export type SyncEntityResult = { entity: string; ok: boolean; count: number; code?: string };
-export type SyncRun = { ok: boolean; outcome: "success" | "partial" | "failure"; summary: string; correlationId: string; results: SyncEntityResult[] };
-export type ConnectionConfig = { connectionId: string; entities: string[]; sampleSize: number; bindingConfigured: boolean; lastSyncAt?: string; lastSyncOutcome: string; lastCorrelationId?: string; lastSyncSummary?: string; lastResults?: SyncEntityResult[] };
+export type SyncRun = { ok: boolean; outcome: "success" | "partial" | "failure"; overallOutcome: "success" | "partial" | "failure"; summary: string; overallSummary: string; correlationId: string; runId: string; trigger: "manual" | "retry" | "test"; results: SyncEntityResult[]; aggregateResults: SyncEntityResult[]; idempotent?: boolean };
+export type SyncRunHistory = { runId: string; correlationId: string; connectionId: string; trigger: "manual" | "retry" | "test"; entities: string[]; status: "processing" | "completed" | "failed"; outcome?: "success" | "partial" | "failure"; summary?: string; results: SyncEntityResult[]; errorCode?: string; startedAt: string; completedAt?: string };
+export type ConnectionConfig = { connectionId: string; entities: string[]; sampleSize: number; bindingConfigured: boolean; syncRunning?: boolean; lastSyncAt?: string; lastSyncOutcome: string; lastCorrelationId?: string; lastSyncSummary?: string; lastResults?: SyncEntityResult[] };
 export type Overview = {
   ready: boolean;
   totals: { partners: number; categories: number; departments: number; projects: number; errors: number };

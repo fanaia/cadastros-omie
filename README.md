@@ -14,7 +14,7 @@ Bounded context de clientes/fornecedores, projetos, categorias, departamentos, a
 
 ## Estado atual
 
-Implementado em OonCore 0.6.1 com frontend code-first. A versão 0.4.0 opera como app single-tenant e multibase, com o tenant técnico fornecido exclusivamente pelo OonCore. O app oferece dashboard, pesquisa de clientes/fornecedores, cadastros auxiliares, inclusão idempotente de parceiros e projetos e uma central de sincronização. Cada base recebe um vínculo emitido pelo módulo Configurações Omie; o segredo técnico é cifrado em repouso e usado somente para assinar a resolução efêmera das credenciais Omie. O resultado por entidade, os códigos de falha e o protocolo permanecem visíveis após a execução.
+Implementado em OonCore 0.6.1 com frontend code-first. A versão 0.5.0 opera como app single-tenant e multibase, com o tenant técnico fornecido exclusivamente pelo OonCore. O app oferece dashboard, pesquisa de clientes/fornecedores, cadastros auxiliares, inclusão idempotente de parceiros e projetos e uma central de sincronização. Cada base recebe um vínculo emitido pelo módulo Configurações Omie; o segredo técnico é cifrado em repouso e usado somente para assinar a resolução efêmera das credenciais Omie. O resultado por entidade, os códigos de falha e o protocolo permanecem visíveis após a execução. Falhas podem ser reprocessadas seletivamente com chave idempotente, lock por base e histórico auditável.
 
 ## Validação
 

@@ -1,6 +1,6 @@
 {
   "name": "cadastros-omie",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "description": "Clientes, fornecedores, projetos, categorias, departamentos, anexos e pickers multibase Omie",
   "scripts": {
@@ -12,5 +12,7 @@
     "dev:backend": "npm run dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend"
   },
-  "devDependencies": { "@oondemand/create-central-oon": "0.6.1" }
+  "devDependencies": {
+    "@oondemand/create-central-oon": "0.6.1"
+  }
 }

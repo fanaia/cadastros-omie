@@ -27,7 +27,7 @@ test("resultado de sincronização é persistido e não simula operação assín
   const service = fs.readFileSync(path.join(__dirname, "../src/services/bootstrapService.js"), "utf8");
   const routes = fs.readFileSync(path.join(__dirname, "../src/routes/operationalBootstrap.js"), "utf8");
   const page = fs.readFileSync(path.join(__dirname, "../../frontend/src/pages/SyncPage.tsx"), "utf8");
-  assert.match(service, /lastResults: result/);
+  assert.match(service, /lastResults: aggregateResults/);
   assert.match(service, /totals\.errors = recentErrors\.length/);
   assert.doesNotMatch(routes, /status\(202\).*syncConnection/);
   assert.match(page, /result\.outcome === "success"/);
