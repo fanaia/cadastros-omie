@@ -108,6 +108,7 @@ export function SyncPage() {
           ? <Empty title="Nenhuma base vinculada" description="Gere o código em Configurações Omie e use o formulário ao lado." />
           : <div className="oon-list">{data.configurations.map(row => {
               const failed = (row.lastResults || []).filter(item => !item.ok);
+              const busyForConnection = busy === row.connectionId || busy === `retry:${row.connectionId}`;
               return <article className="oon-list-item" key={row.connectionId}>
                 <div>
                   <strong>{row.connectionId}</strong>
@@ -122,8 +123,8 @@ export function SyncPage() {
                   {row.lastCorrelationId && <small>Protocolo {row.lastCorrelationId}</small>}
                 </div>
                 <div className="oon-actions">
-                  {(row.lastResults || []).some(item => !item.ok) && <Button variant="secondary" disabled={!row.bindingConfigured || row.syncRunning} busy={busy === `retry:${row.connectionId}`} onClick={() => retry(row.connectionId)}>Reprocessar falhas</Button>}
-                  <Button disabled={!row.bindingConfigured || row.syncRunning} busy={busy === row.connectionId} onClick={() => run(row.connectionId)}>{row.syncRunning ? "Em andamento" : "Sincronizar tudo"}</Button>
+                  {(row.lastResults || []).some(item => !item.ok) && <Button variant="secondary" disabled={!row.bindingConfigured || row.syncRunning || busyForConnection} busy={busy === `retry:${row.connectionId}`} onClick={() => retry(row.connectionId)}>Reprocessar falhas</Button>}
+                  <Button disabled={!row.bindingConfigured || row.syncRunning || busyForConnection} busy={busy === row.connectionId} onClick={() => run(row.connectionId)}>{row.syncRunning ? "Em andamento" : "Sincronizar tudo"}</Button>
                 </div>
               </article>;
             })}</div>}
