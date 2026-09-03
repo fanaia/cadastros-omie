@@ -11,7 +11,8 @@ Este contexto consolida os contratos públicos para Codex, ChatGPT, Kimi, Manus 
 
 # ADVANCED_UX_PATTERNS.md — UX Avançada Declarativa no OonCore
 
-Este documento orienta Agents a usarem o máximo de recursos do OonCore antes de criar telas customizadas. O foco é transformar padrões recorrentes de sistemas operacionais em **manifesto declarativo** e componentes reutilizáveis.
+Este documento orienta Agents a usarem os componentes públicos do OonCore e a
+composição code-first antes de recriar padrões operacionais.
 
 ## Objetivo
 
@@ -33,7 +34,7 @@ Caso de referência: `OrcamentoProjeto -> OrcamentoItem -> Pagamento`.
 
 Antes de criar uma página React customizada, verifique se a necessidade pode ser resolvida por:
 
-1. `collections[]` no `central.ui.json`.
+1. Views `collection` em `defineOonApp({ ui })`.
 2. `list.filters` e `list.rowActions`.
 3. `detailModal.tabs`.
 4. `form.groups`.
@@ -221,7 +222,7 @@ Ações por linha (`rowActions`) podem abrir a modal (`openDetailModal`), navega
 
 Prompt operacional:
 
-> Atualize os três pacotes OonCore para a linha 0.5.x, preserve o domínio e o AGENTS.md do projeto, sincronize `.ooncore`, consulte os contratos públicos de back e front, use apenas extensões suportadas, execute os gates e homologue em `127.0.0.1` sem conexão com a plataforma. Não crie autenticação, ativação, RBAC, CRUD, shell ou infraestrutura paralelos.
+> Atualize os três pacotes OonCore para a linha 0.6.x, preserve o domínio e o AGENTS.md do projeto, sincronize `.ooncore`, consulte os contratos públicos de back e front, use apenas extensões suportadas, execute os gates e homologue em `127.0.0.1` sem conexão com a plataforma. Não crie autenticação, ativação, RBAC, CRUD, shell ou infraestrutura paralelos.
 
 ---
 
@@ -237,7 +238,7 @@ Este arquivo é o contrato inicial neutro para Codex, ChatGPT, Kimi, Manus e out
 2. Confirme `schemaVersion`, `version`, `docsHash` e `entrypointsHash` em `.ooncore/manifest.json`.
 3. Rode `npm run ooncore:docs:check`; se falhar, rode `npm run ooncore:docs` e verifique novamente.
 4. Consulte `docs/CAPABILITIES.md` antes de criar código.
-5. Leia os contratos de backend, frontend, runtime, RBAC ou integração indicados abaixo.
+5. Leia os contratos de backend, frontend, runtime ou RBAC indicados abaixo.
 6. Leia a documentação de domínio do projeto consumidor.
 
 O `AGENTS.md` da raiz pertence ao projeto e nunca pode ser sobrescrito pelo scaffold ou pelo sync do Core.
@@ -247,17 +248,16 @@ O `AGENTS.md` da raiz pertence ao projeto e nunca pode ser sobrescrito pelo scaf
 | Tarefa | Leitura obrigatória |
 |---|---|
 | Domínio, models, validações e fórmulas | `BACKEND_API.md`, `BACKEND_DOMAIN_MANIFEST.md`, `BACKEND_PATTERNS.md`, `REACTIVE_DOMAIN_FORMULAS.md` |
-| CRUD, metadata e UI | `METADATA_CRUD_UI.md`, `FRONTEND_API.md`, `FRONTEND_MANIFEST_REFERENCE.md` |
+| CRUD, metadata e UI | `METADATA_CRUD_UI.md`, `FRONTEND_API.md`, `FRONTEND_CODE_FIRST.md` |
 | Auth, ativação, tenant ou permissões | `AUTH_ACTIVATION_RBAC.md`, `RBAC_SECURITY.md`, `DO_AND_DONT.md` |
 | Execução local | `RUNTIME_MODES.md`, `LOCAL_DEVELOPMENT.md`, `LOCAL_SECURITY_BOUNDARY.md` |
 | Rotas, hooks, jobs e filas | `ROUTES_HOOKS_WORKERS.md`, `BACKEND_PATTERNS.md` |
-| Integrações | `CONNECTORS_AND_INTEGRATIONS.md`, `LOCAL_SECURITY_BOUNDARY.md` |
-| Upgrade do Core | `CORE_UPGRADE.md`, `TESTING_CONFORMANCE.md`, `releases/0.5.0.md` |
+| Upgrade do Core | `CORE_UPGRADE.md`, `TESTING_CONFORMANCE.md`, `releases/0.6.0.md` |
 | UX avançada | `ADVANCED_UX_PATTERNS.md`, `DETAIL_MODAL_AND_RELATED_GRIDS.md`, `PORTAL_COCKPIT_PATTERNS.md` |
 
 ## Fronteira obrigatória
 
-- A Central declara domínio e experiência; o Core fornece bootstrap, autenticação, ativação, RBAC, tenant, CRUD, metadata, shell, componentes genéricos, integração operacional e deployment.
+- O App declara domínio e experiência em código; o Core fornece bootstrap, autenticação, ativação, RBAC, tenant, CRUD, metadata, shell, componentes genéricos e deployment.
 - Use somente exports públicos documentados. Arquivos internos de `src/` não são contrato de extensão.
 - Autorização, tenant e regras que alteram dados são sempre validados no backend.
 - Não crie autenticação, ativação, RBAC, CRUD, shell, registry ou infraestrutura paralelos.
@@ -308,6 +308,15 @@ O estado é `ativa_local`; o `ActivationGuard` não cria nem consulta `Instancia
 - não persista bearer no frontend;
 - não trate simulação local como identidade operacional.
 
+
+## Apps globais e tenant-alvo
+
+Apps com `tenancyModel=none` não montam `TenantProvider`, não restauram tenant
+do storage e não consomem o parâmetro reservado `tenant`. Cockpits globais
+devem transportar a organização administrada com um identificador próprio,
+como `targetTenantId`, e o BFF deve convertê-lo no header específico do
+contrato administrativo. Esse alvo nunca integra a sessão do App.
+
 ---
 
 <!-- source: BACKEND_API.md -->
@@ -321,7 +330,7 @@ Importe exclusivamente de `@oondemand/oon-core-back`. Caminhos internos não tê
 - `start(options)`: carrega a Central, conecta Mongo, inicializa capabilities e inicia HTTP. `options.listen=false` devolve somente o app.
 - `createApp()`: cria o Express já protegido e com rotas do Core.
 - `activate()`: fluxo legado de ativação; não é usado no runtime local.
-- `defineCentral`, `defineModel`, `defineCollection`, `defineDocument`, `definePipeline`, `defineOmieMapping`, `defineRoutes`, `defineValidation`, `defineTrigger`: extensões imperativas suportadas.
+- `defineCentral`, `defineModel`, `defineCollection`, `defineDocument`, `definePipeline`, `defineRoutes`, `defineValidation`, `defineTrigger`: extensões imperativas suportadas.
 - `fields`: factories de campos compatíveis com schema e metadata.
 - `registry`: registry do processo; use APIs `define*`, não mutações internas.
 
@@ -341,10 +350,8 @@ Importe exclusivamente de `@oondemand/oon-core-back`. Caminhos internos não tê
 
 Erros de manifesto carregam `code`, `statusCode` e `issues[]` com `path` e `message`.
 
-## Integrações e capabilities
+## Capabilities
 
-- `integrations`, `registerIntegrationProvider`, `enqueueIntegration`, `receiveIntegrationWebhook`.
-- `omie`, `omieModule`, `createOmieClient`, `OmieApiError`, `enqueueOmieCall`, `ensureOmieProviderRegistered`, `collectOmieDefinitions`, `describeOmieDefinitions`, `saveOmieConfiguration`, `listOmieConfigurations`, `testOmieConnection`.
 - `capabilities`, `PdfRenderingError`, `TransactionalEmailError`.
 - `operationalRequestHeaders(options)`: headers de identidade do Deployment. Retorna `LOCAL_OPERATION_NOT_SUPPORTED` no runtime local; nunca improvise identidade local.
 
@@ -794,7 +801,6 @@ backend/
     ├── mappings/
     ├── documents/
     ├── pipelines/
-    ├── integrations/
     ├── routes/
     ├── controllers/
     └── services/
@@ -802,7 +808,7 @@ backend/
 
 ## Models
 
-Use models para declarar entidades de negócio. Cada model deve ser pequeno, com nomes claros e campos compatíveis com as telas e integrações.
+Use models para declarar entidades de negócio. Cada model deve ser pequeno, com nomes claros e campos compatíveis com as telas e processos.
 
 Boas práticas:
 
@@ -893,7 +899,7 @@ Ele complementa:
 
 - `central.app.json`: identidade, módulos e capabilities da aplicação;
 - `backend/central.domain.json`: models, campos, fórmulas do próprio registro e validações locais;
-- `frontend/central.ui.json`: projeção visual, coleções, esteiras e ações exibidas.
+- `frontend/src/app`: composição code-first de coleções, esteiras e ações exibidas.
 
 O manifesto de processos é carregado **depois** do domínio. Por isso, toda model e todo campo citados precisam existir em `central.domain.json`.
 
@@ -938,16 +944,16 @@ O runtime não executa JavaScript, `eval`, nomes de funções ou módulos inform
       }
     ],
     "lockedFieldsByStage": {
-      "Enviado para Omie": ["valor", "projetoId", "projetoItemId"],
+      "Enviado para pagamento": ["valor", "projetoId", "projetoItemId"],
       "Pagamento Ok": ["valor", "projetoId", "projetoItemId"]
     },
     "lockedMessage": "Os dados de negócio ficam bloqueados nesta etapa.",
     "onEnter": [
       {
-        "stage": "Enviado para Omie",
+        "stage": "Enviado para pagamento",
         "set": {
           "statusTrabalho": "Trabalhando",
-          "omieStatusIntegracao": "Pendente"
+          "statusPagamento": "Pendente"
         }
       }
     ],
@@ -956,7 +962,7 @@ O runtime não executa JavaScript, `eval`, nomes de funções ou módulos inform
         "when": {
           "op": "eq",
           "args": [
-            { "field": "omieLiquidado" },
+            { "field": "pagamentoLiquidado" },
             { "value": true }
           ]
         },
@@ -1152,7 +1158,7 @@ Consulte este catálogo antes de criar infraestrutura ou componentes customizado
 
 | Capacidade | Backend | Frontend | Declaração/extensão | Local | Plataforma |
 |---|---|---|---|---|---|
-| Models e CRUD | `defineModel`, domain manifest, `/core/*` | `CoreCollection`, hooks de API | `central.domain.json`, `central.ui.json` | Sim | Sim |
+| Models e CRUD | `defineModel`, domain manifest, `/core/*` | `CoreCollection`, hooks de API | `central.domain.json`, composição code-first | Sim | Sim |
 | Metadata | registry e `/core/metadata` | `useCoreMetadata`, renderers | models/domain manifest | Sim | Sim |
 | Validações e fórmulas | `defineValidation`, domain rules | prévia reativa | domain manifest/validation | Sim | Sim |
 | Esteiras | process manifest/runtime | `CorePipeline` | `central.process.json`, UI manifest | Sim | Sim |
@@ -1162,8 +1168,7 @@ Consulte este catálogo antes de criar infraestrutura ou componentes customizado
 | Tenant e escopo | access context e scope helpers | `TenantProvider` | `central.app.json` | Contexto técnico | Contexto autorizado |
 | Auditoria | CRUD e request context | headers do SDK | automática/extensão | Local | Operacional |
 | Rotas customizadas | `defineRoutes` | página/ação declarada | `backend/src/routes` | Sim | Sim |
-| Jobs e workers | process/integration workers | status operacional | manifestos/hooks | Sim | Sim |
-| Integrações | runtime/provider registry | `CoreIntegration` | mapping/provider suportado | Dublê ou credencial local | Credencial operacional |
+| Jobs e workers | process workers | status operacional | manifestos/hooks | Sim | Sim |
 | E-mail transacional | capability nativa | `CoreTransactionalEmail` | capability settings | Dublê/local | Provider configurado |
 | PDF | capability nativa | consumo por ação | capability contract | Dublê/local | Provider configurado |
 | Publicação/promoção | contratos de delivery | indisponível no App | CLI/ponte pública | Não | Sim |
@@ -1188,7 +1193,7 @@ Use este checklist antes de concluir qualquer tarefa de codificação em uma Cen
 
 ## Backend
 
-- [ ] Usei model, validation, trigger, hook, mapping ou integration quando aplicável.
+- [ ] Usei model, validation, trigger, hook ou mapping quando aplicável.
 - [ ] Evitei recriar CRUD.
 - [ ] Validei entrada.
 - [ ] Validei permissão no backend.
@@ -1198,9 +1203,9 @@ Use este checklist antes de concluir qualquer tarefa de codificação em uma Cen
 
 ## Frontend
 
-- [ ] Usei `central.ui.json` antes de criar componente customizado.
-- [ ] Evitei recriar shell, rotas, menu, datagrid ou form.
-- [ ] Usei override apenas quando necessário.
+- [ ] Defini o App com `defineOonApp` e `startOonApp`.
+- [ ] Reutilizei shell, guards, primitives e padrões públicos do Core.
+- [ ] Mantive rotas, navegação, páginas, layouts e temas no código do App.
 - [ ] Não coloquei regra crítica apenas no frontend.
 
 ## Integrações
@@ -1307,77 +1312,6 @@ Integrações não devem ser caixas-pretas. O usuário operacional precisa enxer
 
 ---
 
-<!-- source: CONNECTORS_AND_INTEGRATIONS.md -->
-
-# Conectores e Integrações
-
-Toda integração deve ser modelada como um processo rastreável, não como chamada solta dentro de controller.
-
-## Objetivo
-
-Transformar cada integração em:
-
-```txt
-configuração + mapping + execução + status + rastreabilidade
-```
-
-## Estrutura recomendada
-
-```txt
-backend/src/integrations/
-├── <sistema>/
-│   ├── client.js
-│   ├── mappings/
-│   ├── services/
-│   └── README.md
-```
-
-## Client
-
-O client deve concentrar:
-
-- URL base;
-- autenticação;
-- headers;
-- timeout;
-- retry técnico;
-- normalização de erro.
-
-Não coloque regra de negócio no client.
-
-## Mapping
-
-Mappings devem transformar dados entre a Central e o sistema externo.
-
-Regras:
-
-- mapping deve ser explícito;
-- campos obrigatórios devem ser validados antes do envio;
-- resposta externa deve ser normalizada;
-- erros devem ser compreensíveis para operação.
-
-## Esteira de integração
-
-Toda integração relevante deve gerar registro operacional com:
-
-- origem;
-- destino;
-- payload resumido ou referência;
-- status;
-- tentativas;
-- erro normalizado;
-- data/hora;
-- usuário ou processo responsável.
-
-## Segurança
-
-- Nunca versionar app key, secret, token ou credencial.
-- Não logar payloads sensíveis sem necessidade.
-- Não expor credenciais no frontend.
-- Usar `.env` e configuração de ambiente.
-
----
-
 <!-- source: CORE_UPGRADE.md -->
 
 # Atualização coordenada do OonCore
@@ -1392,8 +1326,8 @@ Os três pacotes devem permanecer na mesma linha:
 
 1. Leia o `AGENTS.md` da raiz e preserve regras/domínio do projeto.
 2. Registre versões atuais, lockfiles e `central.app.json`.
-3. Atualize os três pacotes para a mesma versão `0.5.x`.
-4. Ajuste compatibilidade para `>=0.5.0 <0.6.0` somente quando a migração estiver pronta.
+3. Atualize os três pacotes para a mesma versão `0.6.x`.
+4. Ajuste compatibilidade para `>=0.6.0 <0.7.0` somente quando a migração estiver pronta.
 5. Rode `npm run ooncore:docs` e revise o diff de `.ooncore/`.
 6. Remova `DEV_TOKEN`, `VITE_DEV_TOKEN`, tokens fixos e URLs da plataforma do caminho local.
 7. Preserve `AGENTS.md` raiz, models, regras, provas e documentação do domínio.
@@ -1992,489 +1926,73 @@ Não faça branching por texto de mensagem; use `code`. Logs e respostas nunca d
 
 # API pública do `@oondemand/oon-core-front`
 
-Importe exclusivamente da raiz do pacote.
+O contrato principal do frontend é code-first.
 
-## Bootstrap e manifestos
+## Bootstrap
 
-- `start`, `oonCoreFront.start`: inicialização com configuração completa.
-- `startFromManifest`, `startCentralFromManifest`, `manifestToConfig`: caminho preferencial para uma Central declarativa.
-- Tipos: `CentralUiManifest`, `CentralAppManifest`, `CentralManifestBundle`, `CentralUiOnlyManifest`, `ManifestRuntime`.
-- `ManifestRuntime.runtimeMode`: `local` usa sessão HttpOnly; `platform` usa o contrato de autenticação publicado.
+- `defineOonApp`: define identidade, API, rotas, navegação, shell, layouts, páginas, componentes e temas.
+- `startOonApp`: valida e monta o App React.
+- `defineOonRoutes`, `defineOonNavigation`: helpers tipados para composição local.
 
-## Views e componentes
+## Subpaths públicos
 
-- Definições: `defineCollectionView`, `defineDocumentView`, `definePipelineView`, `defineDashboard`, `defineOonModule`.
-- Componentes: `CoreCollection`, `CoreDocument`, `CorePipeline`, `CoreIntegration`, `CoreCurrency`, `CoreAssistant`, `CoreDashboard`, `CoreUsersAccess`, `CoreTransactionalEmail`, `CorePage`.
-- Primitivas UI v2: `CorePageHeader`, `CoreToolbar`, `CoreDataGrid`, `CoreCards`, `CoreForm`, `CoreField`, `CoreRelationField`, `CoreActions`, `CoreEmptyState`, `CoreLoadingState`.
-- Registre componentes customizados por chave em `registry`; não serialize React no JSON.
+- `/ui`: primitives, padrões e componentes de domínio;
+- `/routing`: rotas, navegação e helpers;
+- `/theme`: temas, tokens e seleção em runtime;
+- `/hooks`: hooks de autenticação, tenant, API e metadata;
+- `/testing`: utilitários de teste.
 
-## Hooks, sessão e autorização
+## Segurança
 
-- `useOonAuth`, `can`, `PermissionGate`, `Can`: experiência baseada em permissões já resolvidas pelo backend.
-- `useOonTenant`, `createTenantStorage`: seleção de tenant; o backend continua sendo a autoridade.
-- `useOonApi`, `useOonResource`, `useCoreMetadata`, `useModelSchema`: acesso HTTP/metadata padronizado.
-- O runtime local não grava bearer no `localStorage`, envia cookie com `withCredentials` e usa CSRF double-submit nas mutações.
+- `useOonAuth`, `can`, `PermissionGate`, `Can`: permissões resolvidas pelo backend;
+- `useOonTenant`, `createTenantStorage`: contexto tenant quando aplicável;
+- `useOonApi`, `useOonResource`, `useCoreMetadata`, `useModelSchema`: acesso padronizado;
+- rotas reservadas e guards obrigatórios pertencem ao Core.
 
-## Domínio reativo
+## Domínio e UI
 
-- `DomainExpressionError`, `evaluateDomainExpression`, `applyReactiveFormulas`, `buildDomainMutationPayload`, `coerceDomainFormValue`.
-- Tipos `OonDomainExpression`, `OonComputedFieldDefinition`, `OonReactiveFormField` e `ReactiveFormulaResult`.
-- A prévia do frontend nunca substitui o recálculo e a validação do backend.
-
-## Tipos públicos
-
-Os tipos exportados incluem config, app, auth, runtime, módulos, rotas, menus, UI v1/v2, layout, registry, páginas, blocos, ações, views, campos, metadata, paginação, erros e usuário. Consulte `dist/index.d.ts` da versão instalada quando precisar da assinatura exata; ele faz parte do pacote público.
+Views declarativas continuam disponíveis como composição opcional dentro do
+objeto App. Componentes, páginas e layouts locais podem ser usados em qualquer
+`appKind`. Consulte `FRONTEND_CODE_FIRST.md`.
 
 ---
 
-<!-- source: FRONTEND_MANIFEST_REFERENCE.md -->
+<!-- source: FRONTEND_CODE_FIRST.md -->
 
-# Referência do Manifesto Frontend OonCore
+# Frontend code-first
 
-Este documento é a referência operacional para qualquer Agent criar ou alterar manifestos do frontend OonCore.
+O frontend de todo App Oon é composto em TypeScript/React. O `appKind` não
+limita páginas, componentes, layouts ou temas locais.
 
-Use este arquivo junto com `FRONTEND_PATTERNS.md`. O arquivo de padrões explica como pensar a UI; este arquivo lista as opções do contrato atual e das extensões planejadas para UX avançada.
+```tsx
+import { defineOonApp, startOonApp } from "@oondemand/oon-core-front";
+import { defineOonNavigation, defineOonRoutes } from "@oondemand/oon-core-front/routing";
+import { HomePage } from "./pages/HomePage";
 
-Para modal com abas, grids relacionados editáveis e ações por linha, leia também:
+const routes = defineOonRoutes([{ path: "/", element: <HomePage /> }]);
+const navigation = defineOonNavigation([{ id: "home", label: "Início", to: "/" }]);
 
-- `ADVANCED_UX_PATTERNS.md`
-- `DETAIL_MODAL_AND_RELATED_GRIDS.md`
-
-## Arquivos envolvidos
-
-```txt
-frontend/central.ui.json               # manifesto declarativo da Central
-frontend/src/main.tsx                   # bootstrap do frontend
-packages/oonCore-front/src/manifest.ts # conversão central.ui.json -> OonCoreFrontConfig
-packages/oonCore-front/src/types.ts    # tipos oficiais do contrato
+startOonApp(defineOonApp({
+  app: { id: "meu-app", name: "Meu App" },
+  api: { baseUrl: import.meta.env.VITE_API_URL },
+  routes,
+  navigation,
+}));
 ```
 
-## Regra principal
-
-O manifesto JSON não deve carregar componentes React. Ele só pode declarar dados e chaves de renderer, como:
-
-```txt
-custom:MeusAppsHeader
-fields.password
-cells.statusBadge
-cards.appLauncher
-actions.ativarApp
-menus.portal
-```
-
-Os componentes reais devem ser registrados em código TypeScript/React pelo `registry`.
-
-## Níveis de contrato
-
-Existem três níveis importantes:
-
-1. `central.ui.json`: entrada declarativa usada pelas Centrais geradas.
-2. `CentralUiManifest`: contrato lido por `startFromManifest`.
-3. `OonUiManifest` / `OonCoreFrontConfig`: contrato interno mais completo do Core Front.
-
-Para Agents, a ordem recomendada é:
-
-1. Começar pelo `central.ui.json`.
-2. Usar `pages` e `blocks` quando precisar de UI v2.
-3. Usar `collections[].list`, `collections[].detailModal`, `form.groups`, `relations` e `relatedGrid` para UX operacional avançada.
-4. Usar registry/overrides em TypeScript quando precisar de componentes customizados.
-5. Evitar recriar shell, rotas, menu, grid, cards ou formulários manualmente.
-
-## CentralUiManifest
-
-Contrato aceito por `startFromManifest(manifest, runtime)`.
-
-```ts
-interface CentralUiManifest {
-  name: string;
-  slug: string;
-  backend?: { metadataUrl?: string };
-  schemaVersion?: 1 | 2;
-  layout?: OonLayoutConfig;
-  registry?: OonComponentRegistry;
-  navigation?: OonNavigationConfig;
-  pages?: OonPageDef[];
-  collections?: OonCollectionManifestDef[];
-  pipelines?: Array<{
-    name?: string;
-    model?: string;
-    mode?: string;
-    stageField?: string;
-    path?: string;
-    label?: string;
-    section?: string;
-  }>;
-  documents?: Array<{
-    model: string;
-    mode?: string;
-    path?: string;
-    label?: string;
-    section?: string;
-    approval?: boolean;
-    attachments?: boolean;
-  }>;
-}
-```
-
-## Opções de raiz
-
-| Campo | Tipo | Uso |
-| --- | --- | --- |
-| `name` | `string` | Nome exibido da Central. |
-| `slug` | `string` | Identificador da Central/app. |
-| `backend.metadataUrl` | `string` | URL explícita de metadata, quando aplicável. |
-| `schemaVersion` | `1 \| 2` | Sem valor = compatibilidade v1. Use `2` para UI v2. |
-| `layout` | `OonLayoutConfig` | Shell, sidebar, topbar, header, footer e slots. |
-| `navigation` | `OonNavigationConfig` | Modo do menu e itens manuais. |
-| `pages` | `OonPageDef[]` | Páginas por blocos da UI v2. |
-| `collections` | `Array` | Views de coleção, simples ou avançadas. |
-| `pipelines` | `Array` | Atalho para gerar esteiras. |
-| `documents` | `Array` | Atalho para gerar documentos. |
-
-## Layout
-
-```ts
-type OonSlotConfig = "core" | "none" | `custom:${string}`;
-
-interface OonLayoutConfig {
-  shell?: "default" | "portal" | "content-only" | `custom:${string}`;
-  sidebar?: OonSlotConfig;
-  topbar?: OonSlotConfig;
-  header?: "none" | `custom:${string}`;
-  footer?: "core" | "none" | `custom:${string}`;
-  assistant?: "core" | "none" | `custom:${string}`;
-  main?: "core";
-}
-```
-
-### Valores de `layout.shell`
-
-| Valor | Comportamento |
-| --- | --- |
-| `default` | Shell operacional padrão com sidebar/topbar. |
-| `portal` | Shell para portal, útil para Meus Apps ou home de cards. |
-| `content-only` | Experiência focada em conteúdo. |
-| `custom:<key>` | Shell registrado em `registry.layoutSlots`. |
-
-## Navigation
-
-```ts
-type OonNavigationMode = "auto" | "manual" | "mixed";
-
-interface OonNavigationConfig {
-  mode?: OonNavigationMode;
-  items?: OonMenuItem[];
-}
-```
-
-## Collections no central.ui.json
-
-Atalho para coleções simples ou avançadas.
-
-```ts
-interface OonCollectionManifestDef {
-  model: string;
-  mode?: "full" | "minimal" | "dynamic";
-  path?: string;
-  label?: string;
-  section?: string;
-  list?: OonCollectionListConfig;
-  relations?: Record<string, OonRelationDef>;
-  detailModal?: OonDetailModalConfig;
-}
-```
-
-### Exemplo simples
-
-```json
-{
-  "collections": [
-    {
-      "model": "Cliente",
-      "mode": "dynamic",
-      "path": "/clientes",
-      "label": "Clientes",
-      "section": "Cadastros"
-    }
-  ]
-}
-```
-
-### Exemplo avançado
-
-```json
-{
-  "collections": [
-    {
-      "model": "OrcamentoProjeto",
-      "mode": "dynamic",
-      "path": "/orcamentos-projetos",
-      "label": "Orçamentos/Projetos",
-      "section": "Operação",
-      "list": {
-        "filters": [
-          {
-            "field": "tipoRegistro",
-            "label": "Tipo",
-            "type": "select",
-            "options": [
-              { "label": "Todos", "value": "" },
-              { "label": "Orçamento", "value": "Orçamento" },
-              { "label": "Projeto", "value": "Projeto" }
-            ]
-          }
-        ],
-        "rowActions": [
-          { "type": "openDetailModal", "icon": "edit", "label": "Editar", "initialTab": "resumo" }
-        ]
-      },
-      "relations": {
-        "itens": { "model": "OrcamentoItem", "foreignKey": "projetoId", "parentKey": "_id" },
-        "pagamentos": { "model": "Pagamento", "foreignKey": "projetoId", "parentKey": "_id" }
-      },
-      "detailModal": {
-        "enabled": true,
-        "titleField": "nome",
-        "defaultTab": "resumo",
-        "tabs": []
-      }
-    }
-  ]
-}
-```
-
-## list
-
-Configura filtros, colunas e ações do grid principal.
-
-```ts
-interface OonCollectionListConfig {
-  filters?: OonListFilterDef[];
-  columns?: Array<string | OonColumnDef>;
-  rowActions?: OonRowActionDef[];
-}
-```
-
-### list.filters
-
-```json
-{
-  "field": "tipoRegistro",
-  "label": "Tipo",
-  "type": "select",
-  "options": [
-    { "label": "Todos", "value": "" },
-    { "label": "Orçamento", "value": "Orçamento" }
-  ]
-}
-```
-
-Tipos previstos:
-
-- `text`
-- `select`
-- `date`
-- `dateRange`
-- `numberRange`
-- `boolean`
-- `ref`
-
-### list.rowActions
-
-```json
-{
-  "type": "openDetailModal",
-  "label": "Editar",
-  "icon": "edit",
-  "initialTab": "resumo"
-}
-```
-
-## relations
-
-Relações nomeadas entre model pai e models filhos.
-
-```json
-{
-  "relations": {
-    "itens": {
-      "model": "OrcamentoItem",
-      "foreignKey": "projetoId",
-      "parentKey": "_id"
-    }
-  }
-}
-```
-
-## detailModal
-
-Configura modal de detalhe/criação com abas.
-
-```ts
-interface OonDetailModalConfig {
-  enabled?: boolean;
-  titleField?: string;
-  size?: "md" | "lg" | "xl" | "full";
-  defaultTab?: string;
-  tabs: OonDetailTabDef[];
-}
-```
-
-### Abas suportadas
-
-- `summary`
-- `form`
-- `relatedGrid`
-- `readonlyGrid`
-- `customComponent`
-
-### Aba summary
-
-```json
-{
-  "id": "resumo",
-  "label": "Resumo",
-  "type": "summary",
-  "cards": [
-    { "label": "Itens", "source": "relatedCount", "relation": "itens" },
-    { "label": "Total", "field": "total", "format": "currency" }
-  ]
-}
-```
-
-### Aba form
-
-```json
-{
-  "id": "dados",
-  "label": "Dados Principais",
-  "type": "form",
-  "groups": [
-    { "label": "Identificação", "fields": ["codigo", "nome", "status"] }
-  ]
-}
-```
-
-### Aba relatedGrid
-
-```json
-{
-  "id": "itens",
-  "label": "Itens",
-  "type": "relatedGrid",
-  "relation": "itens",
-  "editable": true,
-  "editMode": "inline",
-  "columns": [
-    { "field": "item", "editable": true },
-    { "field": "status", "editable": true },
-    { "field": "total", "editable": true, "format": "currency" }
-  ],
-  "rowActions": []
-}
-```
-
-### Aba readonlyGrid
-
-```json
-{
-  "id": "pagamentos",
-  "label": "Pagamentos",
-  "type": "readonlyGrid",
-  "relation": "pagamentos",
-  "columns": ["codigo", "descricao", "status", "valor"]
-}
-```
-
-## rowActions
-
-Ações reutilizáveis em grid principal ou grids relacionados.
-
-```ts
-interface OonRowActionDef {
-  id?: string;
-  label: string;
-  icon?: string;
-  type: "openDetailModal" | "navigate" | "apiAction" | "customAction";
-  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-  endpoint?: string;
-  initialTab?: string;
-  confirm?: { title?: string; description?: string };
-  disabledWhen?: OonConditionDef;
-  hiddenWhen?: OonConditionDef;
-  refresh?: string[];
-  roles?: string[];
-  permissions?: string[];
-}
-```
-
-### apiAction
-
-```json
-{
-  "id": "gerarPagamento",
-  "label": "Gerar pagamento",
-  "type": "apiAction",
-  "method": "POST",
-  "endpoint": "/api/ss-eventos/orcamentos-itens/:id/gerar-pagamento",
-  "disabledWhen": { "field": "pagamentoId", "exists": true },
-  "refresh": ["self", "pagamentos", "resumo", "parent"]
-}
-```
-
-## CollectionViewDef completo
-
-Contrato interno completo quando a coleção já está em `ui.views` ou em blocos.
-
-```ts
-interface CollectionViewDef {
-  type: "collection";
-  id?: string;
-  model: string;
-  label?: string;
-  path?: string;
-  icon?: ReactNode;
-  section?: string;
-  mode?: "full" | "minimal" | "dynamic";
-  columns?: OonColumnDef[];
-  form?: OonFormFieldDef[];
-  importExport?: boolean;
-  renderer?: string;
-  cardRenderer?: string;
-  actions?: OonActionDef[];
-  permissions?: string[];
-  list?: OonCollectionListConfig;
-  relations?: Record<string, OonRelationDef>;
-  detailModal?: OonDetailModalConfig;
-}
-```
-
-## Compatibilidade
-
-- Os campos `list`, `relations` e `detailModal` são opcionais.
-- Manifestos existentes continuam funcionando.
-- Sem `detailModal`, o Core mantém comportamento atual.
-- Sem `form.groups`, o Core mantém formulário padrão.
-
-## UX avançada implementada
-
-Campos aceitos em `collections[]`:
-
-- `list.filters`: filtros acima do grid principal.
-- `list.columns`: colunas declarativas opcionais.
-- `list.rowActions`: ações por linha (`openDetailModal`, `navigate`, `apiAction`, `customAction`).
-- `relations`: mapa de relações `{ model, foreignKey, parentKey }`.
-- `detailModal`: modal genérica com `titleField`, `defaultTab`, `size` e `tabs`.
-
-Tipos de aba:
-
-- `summary`: cards com `field`, `relatedCount`, `relatedSum`, `relatedAvg` ou `customMetric`.
-- `form`: campos ou `groups` do registro principal.
-- `relatedGrid`: registros filhos, opcionalmente editáveis inline.
-- `readonlyGrid`: registros filhos sem edição.
-- `customComponent`: chave de componente registrado.
-
-`apiAction.endpoint` aceita `:id`, `:parentId`, `:fieldName` e `:parent.fieldName`. `refresh` aceita `self`, `parent`, `all` ou ids de abas.
+Rotas aceitam `element`, `component`, `lazy`, `layout`, `permissions` e
+`capabilities`. Rotas de autenticação e estados de ativação são reservadas.
+
+Use os subpaths públicos:
+
+- `@oondemand/oon-core-front/ui` para primitives e padrões;
+- `@oondemand/oon-core-front/routing` para rotas e navegação;
+- `@oondemand/oon-core-front/theme` para temas;
+- `@oondemand/oon-core-front/hooks` para hooks;
+- `@oondemand/oon-core-front/testing` para testes.
+
+Não carregue código remoto, não desative guards, não exponha segredos no bundle
+e não importe arquivos internos do pacote. Rode `npm run ooncore:conformance`.
 
 ---
 
@@ -2482,28 +2000,29 @@ Tipos de aba:
 
 # Padrões Frontend
 
-O frontend da Central deve ser declarativo. Shell, providers, rotas, menu, datagrid, formulários, documentos, esteiras, modais de detalhe e grids relacionados pertencem ao `@oondemand/oon-core-front`.
+O frontend do App é code-first. Shell, providers e guards pertencem ao
+`@oondemand/oon-core-front`; rotas, navegação, páginas, componentes, layouts e
+temas são compostos localmente com as APIs públicas do Core.
 
-Para a lista completa de opções do manifesto, use `FRONTEND_MANIFEST_REFERENCE.md`.
+Para o contrato completo, use `FRONTEND_CODE_FIRST.md`.
 Para UX avançada com abas e itens relacionados, use também `ADVANCED_UX_PATTERNS.md` e `DETAIL_MODAL_AND_RELATED_GRIDS.md`.
 
 ## Estrutura esperada
 
 ```txt
 frontend/
-├── central.ui.json
 └── src/
     ├── main.tsx
-    ├── collections/
-    ├── documents/
-    ├── pipelines/
-    ├── dashboards/
-    └── overrides/
+    ├── app/{app,routes,navigation,theme}.tsx
+    ├── pages/
+    ├── components/
+    ├── features/
+    └── layouts/
 ```
 
-## central.ui.json
+## Composição
 
-Use `central.ui.json` como entrada principal para declarar:
+Use o objeto criado por `defineOonApp` para compor:
 
 - menu;
 - coleções;
@@ -2525,11 +2044,8 @@ Use `central.ui.json` como entrada principal para declarar:
 - edição inline;
 - ações por linha.
 
-## Manifesto v1 e v2
-
-- Manifesto sem `schemaVersion` mantém compatibilidade v1.
-- Manifesto com `schemaVersion: 2` habilita composição por `layout`, `navigation`, `pages`, `blocks`, coleções avançadas e componentes declarativos.
-- Componentes React não devem ser serializados no JSON; use chaves e registre os componentes no `registry` em TypeScript.
+Views e blocos declarativos continuam opcionais para telas simples, dentro do
+objeto code-first. Componentes React são registrados diretamente em TypeScript.
 
 ## Padrão de tela operacional
 
@@ -2709,7 +2225,7 @@ O objetivo de segurança é impedir exposição da máquina/rede e impedir que i
 1. `central.domain.json` ou `defineModel` registra model, campos, CRUD, roles e metadata.
 2. O backend expõe `/core/metadata`, `/core/models` e o router CRUD do `basePath`.
 3. Escopo de tenant/usuário, validação, fórmulas, referência, auditoria e triggers são aplicados no servidor.
-4. `central.ui.json` declara coleções, formulários, filtros, relações, esteiras, documentos e dashboards.
+4. O objeto code-first do App compõe coleções, formulários, filtros, relações, esteiras, documentos e dashboards.
 5. O frontend consulta metadata e monta componentes do Core.
 
 O CRUD padrão inclui listagem paginada, leitura, criação, atualização parcial, exclusão e import/export quando habilitados. Use rota customizada somente quando a operação não puder ser representada por CRUD, ação declarativa ou processo.
@@ -2775,156 +2291,20 @@ O Agent deve acelerar a construção da Central usando a arquitetura existente. 
 
 <!-- source: PORTAL_COCKPIT_PATTERNS.md -->
 
-# Portal/Cockpit com OonCore
+# Portais e cockpits code-first
 
-Este padrão atende aplicações como **Meus Apps**, Portal do Cliente, Portal de Parceiros, Suporte, Copilotos e outros Cockpits first-party.
+Portais e cockpits usam o mesmo contrato de frontend dos demais Apps. Defina o
+App com `defineOonApp`, componha rotas com `defineOonRoutes` e inicialize com
+`startOonApp`.
 
-O objetivo é evitar que um portal precise recriar Shell, Router, AuthProvider, Menu, Guards e SDK HTTP. O portal deve usar o `central.ui.json` + `startFromManifest` e registrar apenas os componentes realmente customizados.
+Use páginas locais para jornadas transversais e components do Core para
+autenticação, autorização, tenant, shell, estados e acesso HTTP. O `appKind` não
+cria uma exceção arquitetural nem restringe customização local.
 
-## Perfis arquiteturais
+Para jornadas multi-tenant, passe o tenant específico da operação ao cliente
+HTTP. A seleção visual nunca substitui a autorização do backend.
 
-O OonCore diferencia três perfis:
-
-| Perfil | Uso |
-| --- | --- |
-| `root-central` | Central de Ativações, raiz de confiança. |
-| `member-central` | Central cliente/licenciada, ativada por instância. |
-| `portal-cockpit` | Portal/Cockpit first-party, autenticado por AppClient/BFF. |
-
-## Auth modes
-
-| `auth.mode` | Uso |
-| --- | --- |
-| `bearer` | Token local simples, compatível com Centrais existentes. |
-| `cookie` | Sessão futura via cookie HTTP-only. |
-| `external-sso` | Redireciona para login externo. |
-| `central-instance` | Central membro usando instância ativada. |
-| `central-client` | Portal/Cockpit usando AppClient/BFF. |
-
-## Capabilities no manifesto
-
-Além de `permissions`, o manifesto pode declarar `capabilities`. Elas são permissões dinâmicas vindas da Central de Ativações e evitam criar campos fixos para cada produto.
-
-Exemplos:
-
-```txt
-apps:read
-users:manage
-tickets:read
-tickets:assign
-copilots:read
-copilots:test
-billing:read
-```
-
-O Core trata `permissions` e `capabilities` como requisitos de UI. A segurança real continua no backend.
-
-## Manifesto recomendado
-
-```json
-{
-  "schemaVersion": 2,
-  "name": "Portal Cliente",
-  "slug": "portal-cliente",
-  "appKind": "portal-cockpit",
-  "auth": {
-    "mode": "central-client",
-    "tokenParam": "code"
-  },
-  "layout": {
-    "shell": "portal",
-    "sidebar": "core",
-    "topbar": "none",
-    "header": "none",
-    "footer": "core"
-  },
-  "navigation": {
-    "mode": "manual",
-    "items": [
-      { "label": "Meus Apps", "href": "/apps", "capabilities": ["apps:read"], "order": 10 },
-      { "label": "Suporte", "href": "/suporte", "capabilities": ["tickets:read"], "order": 20 },
-      { "label": "Copilotos", "href": "/copilotos", "capabilities": ["copilots:read"], "order": 30 },
-      { "label": "Usuários", "href": "/usuarios", "capabilities": ["users:manage"], "order": 40 }
-    ]
-  },
-  "pages": [
-    { "path": "/apps", "label": "Meus Apps", "component": "AppsPortalPage", "capabilities": ["apps:read"] },
-    { "path": "/suporte", "label": "Suporte", "component": "SupportPage", "capabilities": ["tickets:read"] },
-    { "path": "/copilotos", "label": "Copilotos", "component": "CopilotsPage", "capabilities": ["copilots:read"] },
-    { "path": "/usuarios", "label": "Usuários", "component": "UsersPermissionsPage", "capabilities": ["users:manage"] }
-  ],
-  "collections": [],
-  "pipelines": [],
-  "documents": []
-}
-```
-
-## Bootstrap recomendado
-
-```ts
-import { startFromManifest } from "@oondemand/oon-core-front";
-import manifest from "../central.ui.json";
-import { AppsPortalPage } from "./custom/AppsPortalPage";
-import { SupportPage } from "./custom/SupportPage";
-import { CopilotsPage } from "./custom/CopilotsPage";
-import { UsersPermissionsPage } from "./custom/UsersPermissionsPage";
-
-startFromManifest(manifest, {
-  apiBaseUrl: import.meta.env.VITE_API_URL,
-  appKind: "portal-cockpit",
-  auth: {
-    mode: "central-client"
-  },
-  customComponents: {
-    AppsPortalPage,
-    SupportPage,
-    CopilotsPage,
-    UsersPermissionsPage
-  }
-});
-```
-
-## Contrato esperado do BFF
-
-O frontend conversa apenas com o BFF do portal. O BFF fala com a Central de Ativações usando AppClient.
-
-Rotas genéricas esperadas no BFF podem espelhar a Central de Ativações:
-
-```http
-GET /api/portal/contexto
-GET /api/portal/apps
-GET /api/portal/apps/:appCode
-GET /api/portal/apps/:appCode/capabilities
-POST /api/portal/apps/:appCode/authorize
-```
-
-O BFF também pode expor rotas de domínio próprias, como:
-
-```http
-GET /api/suporte/tickets
-POST /api/suporte/tickets
-GET /api/copilotos/assistentes
-POST /api/copilotos/assistentes/:id/testar
-```
-
-Essas rotas de domínio validam capability na Central de Ativações antes de executar a ação.
-
-## Regra de segurança
-
-O frontend nunca deve receber `clientSecret`, `x-oon-instance-token`, hash de credencial ou segredo completo. Portais devem falar com um BFF próprio, e o BFF fala com a Central de Ativações usando AppClient.
-
-## Quando usar página custom
-
-Use página custom apenas quando a tela não for CRUD/esteira/documento declarativo, por exemplo:
-
-- cards de apps licenciados;
-- matriz de permissões;
-- cockpit de status;
-- tickets de suporte;
-- gestão de copilotos;
-- onboarding orientado por negócio.
-
-Mesmo nesses casos, o Shell, Router, Auth, Menu, Guards e SDK HTTP devem continuar no Core.
+Consulte `FRONTEND_CODE_FIRST.md`, `FRONTEND_API.md` e `RBAC_SECURITY.md`.
 
 ---
 
@@ -3000,7 +2380,7 @@ Antes de concluir uma alteração, confirme:
 
 A partir do contrato declarativo de domínio, campos com `computed` são recalculados imediatamente nos formulários padrão do `@oondemand/oon-core-front`.
 
-A Central não precisa repetir a fórmula em `central.ui.json` nem criar componentes React específicos. A declaração continua existindo uma única vez no `central.domain.json` do backend.
+O App não precisa repetir a fórmula no frontend nem criar componentes React específicos. A declaração continua existindo uma única vez no `central.domain.json` do backend.
 
 ## Fluxo
 
@@ -3019,7 +2399,7 @@ A Central não precisa repetir a fórmula em `central.ui.json` nem criar compone
 - formulário principal em modal com abas (`CoreTabbedDetail`);
 - criação e edição;
 - formulários derivados integralmente da metadata;
-- formulários com overrides de apresentação no `central.ui.json`, desde que a model continue sendo carregada pela metadata do Core.
+- formulários com apresentação local, desde que a model continue sendo carregada pela metadata do Core.
 
 ## Exemplo
 
@@ -3148,6 +2528,34 @@ O manifesto documental inclui hash dos documentos e dos entrypoints gerados (`AG
 ## Compatibilidade
 
 `DEV_TOKEN` explícito permanece temporariamente apenas para testes/CI legados fora de `OON_RUNTIME_MODE=local`; novos scaffolds não o geram.
+
+---
+
+<!-- source: releases/0.6.0.md -->
+
+# OonCore 0.6.0
+
+A linha 0.6 substitui o bootstrap orientado a manifesto por uma API pública code-first, preservando a governança da Plataforma Oon.
+
+## Destaques
+
+- bootstrap com `defineOonApp` e `startOonApp`;
+- rotas, menus, páginas, componentes e temas tipados;
+- scaffold único e neutro em `_base`;
+- `central.app.json` schema v2;
+- remoção integral dos templates selecionáveis, Omie e provider genérico de integrações;
+- resolução de capabilities técnicas pela Plataforma Oon, sem expor detalhes de implementação aos Apps;
+- documentação distribuída atualizada para desenvolvimento assistido por Agents.
+
+## Upgrade
+
+- alinhe `@oondemand/oon-core-back`, `@oondemand/oon-core-front` e `@oondemand/create-central-oon` na linha `0.6.x`;
+- declare compatibilidade `>=0.6.0 <0.7.0`;
+- migre o frontend para `defineOonApp`/`startOonApp`;
+- remova flags e módulos legados;
+- execute docs check, conformance, typecheck, testes e smoke offline antes da publicação.
+
+A versão 0.6 é incompatível com os contratos removidos da linha 0.5.
 
 ---
 
