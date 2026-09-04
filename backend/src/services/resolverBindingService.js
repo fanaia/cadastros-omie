@@ -2,6 +2,8 @@ const { registry } = require("@oondemand/oon-core-back");
 const { decryptBinding, encryptBinding, resolveBindingKey } = require("./bindingVault");
 const { runtimeScope } = require("./runtimeScope");
 
+const SYNC_POLICY_CONTRACT_VERSION = 1;
+
 function appError(code, message, statusCode = 400) { const error = new Error(message); error.code = code; error.statusCode = statusCode; return error; }
 function requiredText(value, field, max = 600) { const text = String(value || "").trim(); if (!text) throw appError("INVALID_INPUT", field + " é obrigatório."); if (text.length > max) throw appError("INVALID_INPUT", field + " excede o limite."); return text; }
 function model() { const entry = registry.getModel("OmieResolverBinding"); if (!entry) throw appError("MODEL_NOT_READY", "Modelo de vínculo indisponível.", 503); return entry.mongooseModel; }
@@ -21,6 +23,7 @@ function parsePairing(value) {
 function validatePairing(input, environment) {
   const pairing = parsePairing(input);
   if (pairing.schemaVersion !== 1) throw appError("UNSUPPORTED_PAIRING_VERSION", "A versão do código de vínculo não é suportada.");
+  if (pairing.syncPolicyContractVersion !== SYNC_POLICY_CONTRACT_VERSION) throw appError("UNSUPPORTED_SYNC_POLICY_CONTRACT", "O vínculo não declara uma versão compatível do contrato de sincronização.", 409);
   if (pairing.consumerAppCode !== "cadastros-omie") throw appError("PAIRING_CONSUMER_MISMATCH", "Este código não pertence ao módulo Cadastros Omie.", 409);
   if (requiredText(pairing.environment, "environment", 80) !== environment) throw appError("PAIRING_ENVIRONMENT_MISMATCH", "O vínculo pertence a outro ambiente.", 409);
   const secret = requiredText(pairing.secret, "secret", 300);
@@ -59,4 +62,4 @@ async function resolverBindingFor(scope, connectionId) {
   return { ...serialize(row), secret: decryptBinding(row.encryptedSecret).secret };
 }
 
-module.exports = { hasResolverBinding, listResolverBindings, resolverBindingFor, saveResolverBinding, validatePairing };
+module.exports = { SYNC_POLICY_CONTRACT_VERSION, hasResolverBinding, listResolverBindings, resolverBindingFor, saveResolverBinding, validatePairing };
