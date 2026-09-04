@@ -10,22 +10,41 @@ const context = {
   actorId: "service-sync",
   correlationId: "corr-a",
 };
+const syncPolicy = { contractVersion: 1, strategy: "incremental", status: "active", intervalMinutes: 30, pageSize: 37, overlapMinutes: 15 };
 
-test("adapter de Cadastros resolve a conexão e não registra segredo", async () => {
+test("adapter de Cadastros aplica paginação do Control Plane e não registra segredo", async () => {
   const audits = [];
   let request;
   const adapter = createRegistrationAdapter({
-    resolveExecutionContext: async () => ({ allowed: true, status: "active", credential: { key: "key-value", secret: "secret-value" } }),
+    resolveExecutionContext: async () => ({ allowed: true, status: "active", syncPolicy, credential: { key: "key-value", secret: "secret-value" } }),
     transport: async (input) => { request = input; return { clientes_cadastro: [] }; },
     audit: async (event) => audits.push(event),
   });
 
-  const result = await adapter.execute({ context, omieConnectionId: "conn-a", operationId: "partner.list", payload: { pagina: 1 } });
+  const result = await adapter.execute({ context, omieConnectionId: "conn-a", operationId: "partner.list", payload: { pagina: 1, registros_por_pagina: 99 } });
   assert.deepEqual(result, { clientes_cadastro: [] });
   assert.equal(request.body.call, "ListarClientes");
+  assert.equal(request.body.param[0].registros_por_pagina, 37);
   assert.equal(request.body.app_key, "key-value");
   assert.equal(request.body.app_secret, "secret-value");
+  assert.equal(audits[0].syncPolicyVersion, 1);
   assert.doesNotMatch(JSON.stringify(audits), /key-value|secret-value/);
+});
+
+test("adapter bloqueia sincronização pausada no Control Plane", async () => {
+  const adapter = createRegistrationAdapter({
+    resolveExecutionContext: async () => ({ allowed: true, status: "active", syncPolicy: { ...syncPolicy, status: "paused" }, credential: { key: "key", secret: "secret" } }),
+    transport: async () => ({}),
+  });
+  await assert.rejects(() => adapter.execute({ context, omieConnectionId: "conn-a", operationId: "partner.list" }), { code: "SYNC_POLICY_PAUSED" });
+});
+
+test("adapter falha fechado quando contrato central está ausente", async () => {
+  const adapter = createRegistrationAdapter({
+    resolveExecutionContext: async () => ({ allowed: true, status: "active", credential: { key: "key", secret: "secret" } }),
+    transport: async () => ({}),
+  });
+  await assert.rejects(() => adapter.execute({ context, omieConnectionId: "conn-a", operationId: "partner.list" }), { code: "SYNC_POLICY_REQUIRED" });
 });
 
 test("adapter falha fechado para conexão não autorizada", async () => {

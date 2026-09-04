@@ -26,7 +26,6 @@ export function SyncPage() {
   const [data, setData] = useState<Bootstrap | null>(null);
   const [pairingCode, setPairingCode] = useState("");
   const [entities, setEntities] = useState(ENTITIES.map(item => item.id));
-  const [pageSize, setPageSize] = useState(50);
   const [busy, setBusy] = useState("");
   const [notice, setNotice] = useState<{ tone: "success" | "error" | "info"; text: string } | null>(null);
   const load = useCallback(async () => {
@@ -48,11 +47,10 @@ export function SyncPage() {
       await http.put("/cadastros/bootstrap", {
         connectionId: response.data.binding.connectionId,
         entities,
-        sampleSize: pageSize,
       });
       setPairingCode("");
       await load();
-      setNotice({ tone: "success", text: response.data.message + " A base está pronta para a primeira sincronização." });
+      setNotice({ tone: "success", text: response.data.message + " Estratégia, estado e paginação serão resolvidos do Control Plane em cada execução." });
     } catch (reason) {
       setNotice({ tone: "error", text: errorMessage(reason) });
     } finally {
@@ -98,10 +96,13 @@ export function SyncPage() {
 
   return <Page
     eyebrow="Central de sincronização"
-    title="Controle explícito por base"
-    description="Vincule uma base autorizada por Configurações Omie e acompanhe o resultado real de cada cadastro."
+    title="Execução governada pelo Control Plane"
+    description="Cadastros escolhe as entidades; estratégia, estado, cadência e paginação pertencem à política da base em Configurações Omie."
   >
     {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
+    <Card title="Governança central" description="A política é resolvida junto da credencial efêmera em cada chamada à Omie.">
+      <p>Se a política estiver pausada, novas listagens são bloqueadas. O tamanho da página configurado em Configurações substitui qualquer valor local; Cadastros não mantém uma segunda configuração de paginação.</p>
+    </Card>
     <div className="oon-grid">
       <Card className="oon-span-8" title="Bases configuradas" description="Cada execução informa sucesso, falha ou resultado parcial por entidade.">
         {!data?.configurations.length
@@ -132,10 +133,7 @@ export function SyncPage() {
       <Card className="oon-span-4" title="Vincular Configurações Omie" description="Gere o código na aba Consumidores do módulo Configurações.">
         <form onSubmit={bind}>
           <Field label="Código de vínculo" hint="O segredo será cifrado e removido das respostas seguintes.">
-            <textarea required rows={5} value={pairingCode} onChange={event => setPairingCode(event.target.value)} placeholder='{"schemaVersion":1,...}' />
-          </Field>
-          <Field label="Registros por página">
-            <input type="number" min={1} max={100} value={pageSize} onChange={event => setPageSize(Number(event.target.value))} />
+            <textarea required rows={5} value={pairingCode} onChange={event => setPairingCode(event.target.value)} placeholder='{"schemaVersion":1,"syncPolicyContractVersion":1,...}' />
           </Field>
           <div className="oon-checks">{ENTITIES.map(item => <label className="oon-check" key={item.id}>
             <input type="checkbox" checked={entities.includes(item.id)} onChange={event => setEntities(current => event.target.checked ? [...current, item.id] : current.filter(id => id !== item.id))} /> {item.label}
