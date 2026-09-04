@@ -33,6 +33,14 @@ test("bootstrap não aceita nem publica credenciais Omie", () => {
   assert.match(sources, /resolveExecutionContext/);
 });
 
+test("Cadastros não oferece paginação concorrente ao Control Plane", () => {
+  const source = fs.readFileSync(path.join(root, "frontend/src/pages/SyncPage.tsx"), "utf8");
+  assert.doesNotMatch(source, /label="Registros por página"/);
+  assert.doesNotMatch(source, /sampleSize:\s*pageSize/);
+  assert.match(source, /Governança central/);
+  assert.match(source, /Control Plane/);
+});
+
 test("frontend code-first substitui o manifesto declarativo", () => {
   const main = fs.readFileSync(path.join(root, "frontend/src/main.tsx"), "utf8");
   const app = fs.readFileSync(path.join(root, "frontend/src/app/app.tsx"), "utf8");
